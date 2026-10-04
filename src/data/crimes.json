@@ -1,0 +1,447 @@
+{
+  "meta": {
+    "municipality": "Samal",
+    "province": "Bataan",
+    "country": "Philippines",
+    "reportingPeriod": {
+      "from": 2024,
+      "to": 2026
+    },
+    "totalReportedCases": 250,
+    "barangayCount": 14,
+    "crimeCount": 12
+  },
+
+  "yearlyTotals": {
+    "2024": 80,
+    "2025": 108,
+    "2026": 62
+  },
+
+  "barangayTotals": {
+    "east-calaguiman": 23,
+    "east-daang-bago": 29,
+    "gugo": 24,
+    "ibaba": 10,
+    "imelda": 18,
+    "lalawigan": 18,
+    "palili": 12,
+    "san-juan": 15,
+    "santa-lucia": 14,
+    "sapa": 10,
+    "tabing-ilog": 18,
+    "west-calaguiman": 19,
+    "west-daang-bago": 20,
+    "san-roque": 20
+  },
+
+  "crimes": [
+    {
+      "id": "carnapping-motorcycle",
+      "name": "Carnapping – Motorcycle (MC)",
+      "category": "index-crime",
+      "definition": "The unlawful taking of a motorcycle belonging to another, with intent to gain and without the owner's consent, or by means of violence or intimidation against persons or force upon things.",
+      "legalBasis": "Republic Act No. 10883 – New Anti-Carnapping Act of 2016",
+      "legalProvision": "Republic Act No. 10883 defines carnapping as the taking, with intent to gain, of a motor vehicle belonging to another without the latter's consent, or by means of violence against or intimidation of persons, or by using force upon things. A motorcycle falls within the law's definition of a motor vehicle.",
+
+      "yearly": {
+        "2024": 1,
+        "2025": 1,
+        "2026": 1
+      },
+
+      "barangays": {
+        "east-calaguiman": 1,
+        "east-daang-bago": 0,
+        "gugo": 0,
+        "ibaba": 0,
+        "imelda": 0,
+        "lalawigan": 0,
+        "palili": 0,
+        "san-juan": 1,
+        "santa-lucia": 0,
+        "sapa": 0,
+        "tabing-ilog": 0,
+        "west-calaguiman": 0,
+        "west-daang-bago": 1,
+        "san-roque": 0
+      },
+
+      "total": 3
+    },
+
+    {
+      "id": "robbery",
+      "name": "Robbery",
+      "category": "index-crime",
+      "definition": "The taking of personal property belonging to another, with intent to gain, through violence or intimidation against a person or by using force upon things.",
+      "legalBasis": "Revised Penal Code, Article 293",
+      "legalProvision": "Article 293 of the Revised Penal Code defines robbery through the unlawful taking of another person's personal property with intent to gain when the taking is accomplished through violence or intimidation against a person or through force upon things.",
+
+      "yearly": {
+        "2024": 0,
+        "2025": 0,
+        "2026": 1
+      },
+
+      "barangays": {
+        "east-calaguiman": 0,
+        "east-daang-bago": 1,
+        "gugo": 0,
+        "ibaba": 0,
+        "imelda": 0,
+        "lalawigan": 0,
+        "palili": 0,
+        "san-juan": 0,
+        "santa-lucia": 0,
+        "sapa": 0,
+        "tabing-ilog": 0,
+        "west-calaguiman": 0,
+        "west-daang-bago": 0,
+        "san-roque": 0
+      },
+
+      "total": 1
+    },
+
+    {
+      "id": "malicious-mischief",
+      "name": "Malicious Mischief",
+      "category": "non-index-crime",
+      "definition": "The deliberate damaging of property belonging to another when the act does not fall under another specific form of property destruction punished by the Revised Penal Code.",
+      "legalBasis": "Revised Penal Code, Article 327",
+      "legalProvision": "Article 327 provides that a person who deliberately causes damage to the property of another, when the damage does not fall within the preceding chapter of the Revised Penal Code, is liable for malicious mischief.",
+
+      "yearly": {
+        "2024": 12,
+        "2025": 13,
+        "2026": 12
+      },
+
+      "barangays": {
+        "east-calaguiman": 2,
+        "east-daang-bago": 5,
+        "gugo": 10,
+        "ibaba": 0,
+        "imelda": 0,
+        "lalawigan": 5,
+        "palili": 3,
+        "san-juan": 0,
+        "santa-lucia": 5,
+        "sapa": 0,
+        "tabing-ilog": 3,
+        "west-calaguiman": 2,
+        "west-daang-bago": 0,
+        "san-roque": 2
+      },
+
+      "total": 37
+    },
+
+    {
+      "id": "other-forms-of-trespass",
+      "name": "Other Forms of Trespass",
+      "category": "non-index-crime",
+      "definition": "Entering another person's closed premises or fenced estate without permission when the premises are uninhabited and the prohibition against entry is clearly manifested.",
+      "legalBasis": "Revised Penal Code, Article 281",
+      "legalProvision": "Article 281 covers unauthorized entry into the closed premises or fenced estate of another while either or both are uninhabited, when the prohibition to enter is manifest and the person entering has not obtained permission from the owner or caretaker.",
+
+      "yearly": {
+        "2024": 10,
+        "2025": 10,
+        "2026": 12
+      },
+
+      "barangays": {
+        "east-calaguiman": 2,
+        "east-daang-bago": 0,
+        "gugo": 0,
+        "ibaba": 2,
+        "imelda": 4,
+        "lalawigan": 2,
+        "palili": 2,
+        "san-juan": 3,
+        "santa-lucia": 0,
+        "sapa": 2,
+        "tabing-ilog": 5,
+        "west-calaguiman": 5,
+        "west-daang-bago": 2,
+        "san-roque": 3
+      },
+
+      "total": 32
+    },
+
+    {
+      "id": "alarm-and-scandal",
+      "name": "Alarm and Scandal",
+      "category": "non-index-crime",
+      "definition": "Certain acts committed in towns or public places that cause alarm, danger, disturbance, scandal, or disruption of public peace.",
+      "legalBasis": "Revised Penal Code, Article 155, as amended by Republic Act No. 10951",
+      "legalProvision": "Article 155 covers specified disturbances of public order, including discharging firearms or explosives in a manner calculated to cause alarm or danger, participating in certain disorderly meetings, disturbing the public peace at night, or causing a disturbance or scandal in a public place while intoxicated or otherwise.",
+
+      "yearly": {
+        "2024": 8,
+        "2025": 20,
+        "2026": 10
+      },
+
+      "barangays": {
+        "east-calaguiman": 5,
+        "east-daang-bago": 0,
+        "gugo": 5,
+        "ibaba": 0,
+        "imelda": 5,
+        "lalawigan": 0,
+        "palili": 5,
+        "san-juan": 0,
+        "santa-lucia": 5,
+        "sapa": 0,
+        "tabing-ilog": 3,
+        "west-calaguiman": 2,
+        "west-daang-bago": 4,
+        "san-roque": 4
+      },
+
+      "total": 38
+    },
+
+    {
+      "id": "qualified-trespass-to-dwelling",
+      "name": "Qualified Trespass to Dwelling",
+      "category": "non-index-crime",
+      "definition": "The entry by a private person into another person's dwelling against the will of the occupant, subject to the exceptions provided by law.",
+      "legalBasis": "Revised Penal Code, Article 280, as amended by Republic Act No. 10951",
+      "legalProvision": "Article 280 penalizes a private person who enters another person's dwelling against the latter's will. The law provides a higher penalty when violence or intimidation is used and also identifies exceptions, including entry to prevent serious harm or to render service to humanity or justice.",
+
+      "yearly": {
+        "2024": 7,
+        "2025": 0,
+        "2026": 0
+      },
+
+      "barangays": {
+        "east-calaguiman": 0,
+        "east-daang-bago": 1,
+        "gugo": 1,
+        "ibaba": 0,
+        "imelda": 0,
+        "lalawigan": 0,
+        "palili": 0,
+        "san-juan": 0,
+        "santa-lucia": 1,
+        "sapa": 1,
+        "tabing-ilog": 1,
+        "west-calaguiman": 0,
+        "west-daang-bago": 2,
+        "san-roque": 0
+      },
+
+      "total": 7
+    },
+
+    {
+      "id": "resistance-disobedience-authority",
+      "name": "Resistance and Disobedience to Authority",
+      "category": "non-index-crime",
+      "definition": "Resistance or serious disobedience toward a person in authority or an agent of a person in authority while that person or agent is performing official duties, when the conduct does not constitute a more serious offense under the preceding provisions of the Revised Penal Code.",
+      "legalBasis": "Revised Penal Code, Article 151, as amended by Republic Act No. 10951",
+      "legalProvision": "Article 151 penalizes resistance or serious disobedience to a person in authority or the agent of such person while engaged in official duties. It also provides for a lesser penalty when disobedience to an agent of a person in authority is not serious.",
+
+      "yearly": {
+        "2024": 6,
+        "2025": 10,
+        "2026": 6
+      },
+
+      "barangays": {
+        "east-calaguiman": 0,
+        "east-daang-bago": 0,
+        "gugo": 0,
+        "ibaba": 5,
+        "imelda": 0,
+        "lalawigan": 5,
+        "palili": 0,
+        "san-juan": 5,
+        "santa-lucia": 0,
+        "sapa": 1,
+        "tabing-ilog": 2,
+        "west-calaguiman": 2,
+        "west-daang-bago": 2,
+        "san-roque": 0
+      },
+
+      "total": 22
+    },
+
+    {
+      "id": "falsification-private-individual",
+      "name": "Falsification by Private Individual and Use of Falsified Documents",
+      "category": "non-index-crime",
+      "definition": "Falsification committed by a private individual in documents covered by Article 172, or the knowing use of falsified documents under the circumstances specified by the Revised Penal Code.",
+      "legalBasis": "Revised Penal Code, Article 172, as amended by Republic Act No. 10951",
+      "legalProvision": "Article 172 covers specified acts of document falsification by private individuals, falsification of private documents to the damage of another or with intent to cause such damage, and the knowing use of falsified documents under the circumstances provided by law.",
+
+      "yearly": {
+        "2024": 9,
+        "2025": 9,
+        "2026": 0
+      },
+
+      "barangays": {
+        "east-calaguiman": 2,
+        "east-daang-bago": 5,
+        "gugo": 3,
+        "ibaba": 0,
+        "imelda": 5,
+        "lalawigan": 0,
+        "palili": 0,
+        "san-juan": 0,
+        "santa-lucia": 0,
+        "sapa": 0,
+        "tabing-ilog": 0,
+        "west-calaguiman": 0,
+        "west-daang-bago": 0,
+        "san-roque": 3
+      },
+
+      "total": 18
+    },
+
+    {
+      "id": "reckless-imprudence-physical-injuries",
+      "name": "Reckless Imprudence Resulting in Physical Injuries",
+      "category": "non-index-crime",
+      "definition": "A punishable act of reckless imprudence or negligence that results in physical injury to another person. The offense focuses on the negligent or imprudent act and the resulting harm rather than an intent to cause the injury.",
+      "legalBasis": "Revised Penal Code, Article 365",
+      "legalProvision": "Article 365 penalizes reckless imprudence and simple imprudence or negligence according to the act that would have constituted the offense if performed intentionally and the consequences produced. Physical injuries may therefore result in liability under Article 365 when caused by punishable imprudence or negligence.",
+
+      "yearly": {
+        "2024": 10,
+        "2025": 6,
+        "2026": 14
+      },
+
+      "barangays": {
+        "east-calaguiman": 5,
+        "east-daang-bago": 5,
+        "gugo": 5,
+        "ibaba": 3,
+        "imelda": 2,
+        "lalawigan": 5,
+        "palili": 0,
+        "san-juan": 0,
+        "santa-lucia": 2,
+        "sapa": 1,
+        "tabing-ilog": 1,
+        "west-calaguiman": 1,
+        "west-daang-bago": 0,
+        "san-roque": 0
+      },
+
+      "total": 30
+    },
+
+    {
+      "id": "reckless-imprudence-damage-property",
+      "name": "Reckless Imprudence Resulting in Damage to Property",
+      "category": "non-index-crime",
+      "definition": "A punishable act of reckless imprudence or negligence that causes damage to property belonging to another.",
+      "legalBasis": "Revised Penal Code, Article 365",
+      "legalProvision": "Article 365 provides for liability when an imprudent or negligent act causes damage to another person's property. When the act results only in property damage, the provision prescribes a fine based on the value of the damage, subject to the statutory minimum.",
+
+      "yearly": {
+        "2024": 10,
+        "2025": 14,
+        "2026": 0
+      },
+
+      "barangays": {
+        "east-calaguiman": 0,
+        "east-daang-bago": 5,
+        "gugo": 0,
+        "ibaba": 0,
+        "imelda": 0,
+        "lalawigan": 0,
+        "palili": 0,
+        "san-juan": 5,
+        "santa-lucia": 0,
+        "sapa": 0,
+        "tabing-ilog": 0,
+        "west-calaguiman": 5,
+        "west-daang-bago": 5,
+        "san-roque": 4
+      },
+
+      "total": 24
+    },
+
+    {
+      "id": "reckless-imprudence-slight-physical-injuries",
+      "name": "Reckless Imprudence Resulting in Slight Physical Injuries",
+      "category": "non-index-crime",
+      "definition": "A punishable act of reckless imprudence or negligence resulting in physical injuries classified as slight under the applicable provisions of the Revised Penal Code.",
+      "legalBasis": "Revised Penal Code, Article 365",
+      "legalProvision": "Article 365 governs criminal liability arising from reckless imprudence or negligence. When the consequence is slight physical injury, liability and the applicable penalty are determined under Article 365 in relation to the offense that the act would have constituted if committed intentionally.",
+
+      "yearly": {
+        "2024": 7,
+        "2025": 15,
+        "2026": 6
+      },
+
+      "barangays": {
+        "east-calaguiman": 5,
+        "east-daang-bago": 5,
+        "gugo": 0,
+        "ibaba": 0,
+        "imelda": 0,
+        "lalawigan": 0,
+        "palili": 0,
+        "san-juan": 0,
+        "santa-lucia": 0,
+        "sapa": 5,
+        "tabing-ilog": 3,
+        "west-calaguiman": 2,
+        "west-daang-bago": 4,
+        "san-roque": 4
+      },
+
+      "total": 28
+    },
+
+    {
+      "id": "reckless-imprudence-multiple-physical-injuries",
+      "name": "Reckless Imprudence Resulting in Multiple Physical Injuries",
+      "category": "non-index-crime",
+      "definition": "A punishable act of reckless imprudence or negligence that results in physical injuries to multiple persons.",
+      "legalBasis": "Revised Penal Code, Article 365",
+      "legalProvision": "Article 365 treats reckless imprudence as the punishable negligent act, with liability determined according to the consequences produced. Philippine jurisprudence recognizes cases in which a single imprudent act results in multiple physical injuries and, in some instances, property damage.",
+
+      "yearly": {
+        "2024": 0,
+        "2025": 10,
+        "2026": 0
+      },
+
+      "barangays": {
+        "east-calaguiman": 1,
+        "east-daang-bago": 2,
+        "gugo": 0,
+        "ibaba": 0,
+        "imelda": 2,
+        "lalawigan": 1,
+        "palili": 2,
+        "san-juan": 1,
+        "santa-lucia": 1,
+        "sapa": 0,
+        "tabing-ilog": 0,
+        "west-calaguiman": 0,
+        "west-daang-bago": 0,
+        "san-roque": 0
+      },
+
+      "total": 10
+    }
+  ]
+}
