@@ -9,101 +9,6 @@ import {
   ShieldOutlined,
 } from "@mui/icons-material";
 
-/*
-=========================================================
-BANTAY SAMAL - MAIN APPLICATION
-=========================================================
-
-WHAT IS THIS FILE?
-
-App.tsx is the MAIN CONTROLLER of the Bantay Samal system.
-
-A simple way to understand it is:
-
-                App.tsx
-                   │
-        ┌──────────┴──────────┐
-        │                     │
-   Landing Page          Crime Dashboard
-                              │
-             ┌────────────────┼────────────────┐
-             │                │                │
-           Filters           Map           Analytics
-             │                │                │
-             └─────────── Selected Data ───────┘
-
-This file does not contain all crime calculations itself.
-
-Instead, it connects the different components of the system and
-passes the user's selected filters to them.
-
-For a criminology student:
-
-Think of App.tsx as the "control center" of Bantay Samal.
-
-When a user selects:
-
-Year = 2025
-Crime = Malicious Mischief
-Barangay = Gugo
-
-App.tsx remembers those selections and sends them to the map,
-analytics, area summary, and information dialogs.
-
-IMPORTANT:
-
-The system distinguishes between:
-
-1. REPORTED DATA
-   Values directly supported by the available crime dataset.
-
-2. ESTIMATED DATA
-   Values calculated when a specific Year × Barangay combination
-   is not directly available from the reported source data.
-
-Estimated values must never be described as directly reported
-crime incidents.
-=========================================================
-*/
-
-/*
-=========================================================
-DASHBOARD COMPONENTS
-=========================================================
-
-Each component has a specific responsibility.
-
-SummaryCards
-    → Shows general information such as total cases,
-      number of barangays, crime types, and reporting period.
-
-FilterPanel
-    → Allows the user to select year, crime, and barangay.
-
-CrimeAnalytics
-    → Presents crime information using charts.
-
-AreaSummary
-    → Compares and ranks barangays according to case counts.
-
-CrimeDetails
-    → Explains the selected crime, including its definition
-      and legal information.
-
-DataMethodology
-    → Explains how reported and estimated data are handled.
-
-BarangayDetails
-    → Shows a detailed profile of the selected barangay.
-
-SamalMap
-    → Displays the geographic crime visualization.
-
-LandingPage
-    → The introductory page before entering the dashboard.
-=========================================================
-*/
-
 import SummaryCards from "./components/dashboard/SummaryCards";
 import FilterPanel from "./components/dashboard/FilterPanel";
 import CrimeAnalytics from "./components/dashboard/CrimeAnalytics";
@@ -115,89 +20,12 @@ import BarangayDetails from "./components/dashboard/BarangayDetails";
 import SamalMap from "./components/map/SamalMap";
 import LandingPage from "./components/landing/LandingPage";
 
-/*
-=========================================================
-DATA
-=========================================================
-
-crimes.json contains the main crime information used throughout
-the dashboard.
-
-Examples include:
-
-- Crime ID
-- Crime name
-- Category
-- Yearly totals
-- Barangay totals
-- Total cases
-- Definition
-- Legal basis
-- Legal provision
-
-The application uses the crime ID to connect the selected crime
-to the appropriate information and visualization.
-=========================================================
-*/
-
 import crimesData from "./data/crimes.json";
-
-/*
-=========================================================
-CRIME COLORS
-=========================================================
-
-Each crime type has its own visualization color.
-
-IMPORTANT FOR INTERPRETATION:
-
-The color assigned to a crime DOES NOT indicate:
-
-- seriousness of the offense
-- legal penalty
-- crime severity
-- barangay safety
-- level of danger
-
-It is only a visual aid that helps users distinguish crime types.
-=========================================================
-*/
-
 import { getCrimeColor } from "./utils/crimeColors";
 
-/*
-=========================================================
-DASHBOARD ANIMATIONS
-=========================================================
-
-These objects only control how dashboard sections appear
-on the screen.
-
-They DO NOT change crime data.
-
-For example:
-
-dashboardFadeIn
-    → slowly makes something visible
-
-dashboardFadeUp
-    → makes something appear while moving slightly upward
-
-dashboardFadeDown
-    → makes something appear from above
-
-dashboardSlideLeft
-    → makes something enter from the left
-
-dashboardMapReveal
-    → reveals the map smoothly
-
-dashboardScaleIn
-    → slightly enlarges an element as it appears
-
-These are purely interface effects.
-=========================================================
-*/
+/* =========================================
+   DASHBOARD ANIMATIONS
+========================================= */
 
 const dashboardFadeIn = {
   animation: "dashboardFadeIn 500ms cubic-bezier(0.22, 1, 0.36, 1) both",
@@ -212,13 +40,6 @@ const dashboardFadeIn = {
     },
   },
 
-  /*
-  Accessibility:
-
-  Some users prefer reduced animation because motion can cause
-  discomfort. If the device requests reduced motion, animations
-  are disabled.
-  */
   "@media (prefers-reduced-motion: reduce)": {
     animation: "none",
   },
@@ -324,19 +145,6 @@ const dashboardScaleIn = {
   },
 };
 
-/*
-This function allows sections to appear one after another instead
-of all appearing at exactly the same time.
-
-Example:
-
-Summary Cards → 140 ms
-Filter Panel  → 210 ms
-Map           → 260 ms
-
-Again, this is only a visual effect.
-*/
-
 const dashboardAnimationDelay = (delay: number) => ({
   animationDelay: `${delay}ms`,
 
@@ -345,53 +153,22 @@ const dashboardAnimationDelay = (delay: number) => ({
   },
 });
 
-/*
-=========================================================
-MAIN APPLICATION
-=========================================================
-*/
+/* =========================================
+   APP
+========================================= */
 
 function App() {
-  /*
-  =======================================================
-  PAGE STATE
-  =======================================================
-
-  Bantay Samal currently has two main pages:
-
-  landing
-      → introductory page
-
-  dashboard
-      → interactive crime mapping system
-
-  The system starts on the landing page.
-  =======================================================
-  */
+  /* =========================================
+     PAGE STATE
+  ========================================= */
 
   const [currentPage, setCurrentPage] = useState<"landing" | "dashboard">(
     "landing",
   );
 
-  /*
-  =======================================================
-  FILTER STATE
-  =======================================================
-
-  These three variables remember what the user selected.
-
-  Example:
-
-  selectedYear       = "2025"
-  selectedCrimeId    = "malicious-mischief"
-  selectedBarangayId = "gugo"
-
-  "all" means that no specific item has been selected.
-
-  These selections are passed to other components so the entire
-  dashboard stays synchronized.
-  =======================================================
-  */
+  /* =========================================
+     FILTER STATE
+  ========================================= */
 
   const [selectedYear, setSelectedYear] = useState("all");
 
@@ -399,50 +176,27 @@ function App() {
 
   const [selectedBarangayId, setSelectedBarangayId] = useState("all");
 
-  /*
-  =======================================================
-  BARANGAY DETAILS MODAL
-  =======================================================
-
-  This controls whether the Barangay Details window is open.
-
-  false = closed
-  true  = open
-  =======================================================
-  */
+  /* =========================================
+     BARANGAY DETAILS MODAL
+  ========================================= */
 
   const [barangayDetailsOpen, setBarangayDetailsOpen] = useState(false);
 
-  /*
-  =======================================================
-  CRIME DETAILS MODAL
-  =======================================================
-
-  Controls the Crime Information dialog.
-
-  This dialog contains explanatory/legal information about the
-  selected crime.
-  =======================================================
-  */
+  /* =========================================
+     CRIME DETAILS MODAL
+  ========================================= */
 
   const [crimeDetailsOpen, setCrimeDetailsOpen] = useState(false);
 
-  /*
-  =======================================================
-  MAP LEGEND
-  =======================================================
-
-  Controls whether the Case Intensity legend is visible.
-  =======================================================
-  */
+  /* =========================================
+     MAP LEGEND
+  ========================================= */
 
   const [legendOpen, setLegendOpen] = useState(true);
 
-  /*
-  =======================================================
-  PAGE NAVIGATION
-  =======================================================
-  */
+  /* =========================================
+     PAGE NAVIGATION
+  ========================================= */
 
   const openDashboard = () => {
     setCurrentPage("dashboard");
@@ -456,11 +210,6 @@ function App() {
   const openLandingPage = () => {
     setCurrentPage("landing");
 
-    /*
-    Close dialogs before returning home so they are not left open
-    when the user later returns to the dashboard.
-    */
-
     setBarangayDetailsOpen(false);
     setCrimeDetailsOpen(false);
 
@@ -470,18 +219,9 @@ function App() {
     });
   };
 
-  /*
-  =======================================================
-  RESET FILTERS
-  =======================================================
-
-  Restores the dashboard to its general municipality view.
-
-  Year     → All Years
-  Crime    → All Crimes
-  Barangay → All Barangays
-  =======================================================
-  */
+  /* =========================================
+     RESET FILTERS
+  ========================================= */
 
   const handleResetFilters = () => {
     setSelectedYear("all");
@@ -492,28 +232,16 @@ function App() {
     setCrimeDetailsOpen(false);
   };
 
-  /*
-  =======================================================
-  MAP BARANGAY CLICK
-  =======================================================
+  /* =========================================
+     MAP BARANGAY CLICK
 
-  When the user clicks a barangay directly on the map:
+     Map click:
+     → select barangay
+     → open Barangay Details
 
-  1. That barangay becomes selected.
-  2. The Barangay Details dialog opens.
-
-  Example:
-
-  User clicks Gugo
-        ↓
-  selectedBarangayId = "gugo"
-        ↓
-  Barangay Details opens
-
-  This is different from simply choosing a barangay through some
-  other dashboard controls.
-  =======================================================
-  */
+     Filter/ranking selection:
+     → select barangay only
+  ========================================= */
 
   const handleMapBarangayChange = (barangayId: string) => {
     setSelectedBarangayId(barangayId);
@@ -523,18 +251,9 @@ function App() {
     }
   };
 
-  /*
-  =======================================================
-  OPEN CRIME DETAILS
-  =======================================================
-
-  Crime information can only be opened when an individual crime
-  has been selected.
-
-  "All Crimes" does not represent one specific criminal offense,
-  so there is no single legal definition to display.
-  =======================================================
-  */
+  /* =========================================
+     OPEN CRIME DETAILS
+  ========================================= */
 
   const handleOpenCrimeDetails = () => {
     if (selectedCrimeId !== "all") {
@@ -542,44 +261,18 @@ function App() {
     }
   };
 
-  /*
-  =======================================================
-  CRIME FILTER CHANGE
-  =======================================================
-  */
+  /* =========================================
+     CRIME FILTER CHANGE
+  ========================================= */
 
   const handleCrimeChange = (crimeId: string) => {
     setSelectedCrimeId(crimeId);
-
-    /*
-    Close an existing Crime Details window because its information
-    may belong to the previously selected crime.
-    */
-
     setCrimeDetailsOpen(false);
   };
 
-  /*
-  =======================================================
-  SELECTED CRIME
-  =======================================================
-
-  Find the complete record belonging to the selected crime ID.
-
-  Example:
-
-  selectedCrimeId
-        ↓
-  "malicious-mischief"
-        ↓
-  Search crimes.json
-        ↓
-  Return the Malicious Mischief object
-
-  useMemo prevents React from searching again unless the selected
-  crime changes.
-  =======================================================
-  */
+  /* =========================================
+     SELECTED CRIME
+  ========================================= */
 
   const selectedCrime = useMemo(() => {
     if (selectedCrimeId === "all") {
@@ -591,77 +284,17 @@ function App() {
     );
   }, [selectedCrimeId]);
 
-  /*
-  =======================================================
-  ACTIVE CRIME COLOR
-  =======================================================
-
-  Retrieves the visualization color assigned to the selected crime.
-
-  IMPORTANT:
-
-  Crime color is NOT a measurement of crime seriousness.
-
-  For example, red does not automatically mean that one crime is
-  legally more serious than a crime shown in blue.
-
-  Colors only distinguish categories visually.
-  =======================================================
-  */
+  /* =========================================
+     ACTIVE CRIME COLOR
+  ========================================= */
 
   const activeCrimeColor = getCrimeColor(selectedCrimeId);
 
-  /*
-  =======================================================
-  MAP CASE INTENSITY LEGEND
-  =======================================================
-
-  The map compares each barangay with the barangay having the
-  highest case count under the CURRENT FILTERS.
-
-  Conceptually:
-
-       Barangay case count
-  ----------------------------- × 100
-    Highest barangay case count
-
-  Example:
-
-  Highest barangay = 20 cases
-  Another barangay = 10 cases
-
-  Relative intensity:
-
-  10 ÷ 20 × 100 = 50%
-
-  Therefore, that barangay falls within the Moderate category.
-
-  IMPORTANT CRIMINOLOGY INTERPRETATION:
-
-  Low, Moderate, High, and Very High are RELATIVE VISUAL
-  CLASSIFICATIONS.
-
-  They are NOT formal crime-risk or public-safety classifications.
-
-  "Very High" does NOT automatically mean:
-      "very dangerous"
-
-  "Low" does NOT automatically mean:
-      "safe"
-
-  The classifications only help compare case concentration under
-  the current dashboard filters.
-  =======================================================
-  */
+  /* =========================================
+     DYNAMIC LEGEND ITEMS
+  ========================================= */
 
   const legendItems = useMemo(() => {
-    /*
-    ALL CRIMES
-
-    When all crimes are displayed, the system uses different teal
-    shades for the intensity categories.
-    */
-
     if (selectedCrimeId === "all") {
       return [
         {
@@ -697,21 +330,6 @@ function App() {
       ];
     }
 
-    /*
-    SPECIFIC CRIME
-
-    When one crime is selected, every positive barangay keeps the
-    SAME crime color.
-
-    Only transparency changes.
-
-    This is important because we do not want different shades to
-    look like different crimes.
-
-    Same hue = same selected crime
-    Different opacity = different relative concentration
-    */
-
     return [
       {
         label: "Very High",
@@ -746,34 +364,17 @@ function App() {
     ];
   }, [selectedCrimeId, activeCrimeColor]);
 
-  /*
-  =======================================================
-  LANDING PAGE
-  =======================================================
-
-  Before entering the dashboard, show the project's introductory
-  page.
-
-  When the user presses the dashboard button, openDashboard()
-  changes currentPage from:
-
-  landing → dashboard
-  =======================================================
-  */
+  /* =========================================
+     LANDING PAGE
+  ========================================= */
 
   if (currentPage === "landing") {
     return <LandingPage onOpenDashboard={openDashboard} />;
   }
 
-  /*
-  =======================================================
-  DASHBOARD
-  =======================================================
-
-  From this point onward, the user is inside the interactive
-  crime mapping dashboard.
-  =======================================================
-  */
+  /* =========================================
+     DASHBOARD
+  ========================================= */
 
   return (
     <Box
@@ -782,17 +383,9 @@ function App() {
         bgcolor: "background.default",
       }}
     >
-      {/* =====================================================
+      {/* =================================
           HEADER
-
-          Displays:
-          - Bantay Samal identity
-          - Crime Mapping & Statistics
-          - Samal, Bataan
-
-          Clicking the shield or Bantay Samal title returns the
-          user to the landing page.
-      ===================================================== */}
+      ================================= */}
 
       <Box
         component="header"
@@ -826,6 +419,10 @@ function App() {
               justifyContent: "space-between",
             }}
           >
+            {/* =================================
+                BRAND + LOCATION
+            ================================= */}
+
             <Stack
               direction="row"
               spacing={{
@@ -837,7 +434,7 @@ function App() {
                 alignItems: "center",
               }}
             >
-              {/* PROJECT LOGO */}
+              {/* LOGO */}
 
               <Box
                 component="button"
@@ -887,7 +484,7 @@ function App() {
                 />
               </Box>
 
-              {/* PROJECT NAME */}
+              {/* BRAND TEXT */}
 
               <Box sx={{ minWidth: 0 }}>
                 <Typography
@@ -936,7 +533,7 @@ function App() {
                 </Typography>
               </Box>
 
-              {/* STUDY LOCATION */}
+              {/* LOCATION */}
 
               <Chip
                 icon={<LocationOnOutlined />}
@@ -966,9 +563,9 @@ function App() {
         </Container>
       </Box>
 
-      {/* =====================================================
-          MAIN DASHBOARD CONTENT
-      ===================================================== */}
+      {/* =================================
+          MAIN CONTENT
+      ================================= */}
 
       <Container
         component="main"
@@ -986,15 +583,9 @@ function App() {
           },
         }}
       >
-        {/* ===================================================
-            NAVIGATION + METHODOLOGY
-
-            Left:
-            Back arrow → returns to landing page
-
-            Right:
-            Information button → explains data methodology
-        =================================================== */}
+        {/* =================================
+            BACK + ABOUT ACTION ROW
+        ================================= */}
 
         <Box
           sx={{
@@ -1013,6 +604,8 @@ function App() {
             ...dashboardAnimationDelay(80),
           }}
         >
+          {/* BACK BUTTON */}
+
           <Box
             component="button"
             type="button"
@@ -1063,6 +656,8 @@ function App() {
             />
           </Box>
 
+          {/* INFO BUTTON */}
+
           <Box
             sx={{
               ml: "auto",
@@ -1077,15 +672,9 @@ function App() {
           </Box>
         </Box>
 
-        {/* ===================================================
+        {/* =================================
             SUMMARY CARDS
-
-            Provides a quick overview of the dataset.
-
-            These cards should be interpreted as descriptive
-            statistics about the dataset—not conclusions about
-            public safety.
-        =================================================== */}
+        ================================= */}
 
         <Box
           sx={{
@@ -1101,16 +690,9 @@ function App() {
           <SummaryCards />
         </Box>
 
-        {/* ===================================================
+        {/* =================================
             MAIN MAP WORKSPACE
-
-            Desktop:
-            Filter Panel | Map
-
-            Mobile:
-            Filter Panel
-            Map
-        =================================================== */}
+        ================================= */}
 
         <Box
           sx={{
@@ -1132,11 +714,7 @@ function App() {
             minWidth: 0,
           }}
         >
-          {/* FILTER PANEL
-
-              The filters determine what part of the crime
-              dataset the user wants to examine.
-          */}
+          {/* FILTER PANEL */}
 
           <Box
             sx={{
@@ -1157,31 +735,9 @@ function App() {
             />
           </Box>
 
-          {/* =================================================
-              INTERACTIVE CRIME MAP
-
-              The current filter selections are passed to
-              SamalMap.
-
-              Therefore, the map always knows:
-
-              - selected year
-              - selected crime
-              - selected barangay
-
-              When a barangay polygon is clicked,
-              handleMapBarangayChange() is called.
-
-              IMPORTANT:
-
-              Map colors represent relative case concentration.
-
-              They do NOT automatically represent:
-              - danger
-              - crime risk
-              - probability of victimization
-              - barangay safety
-          ================================================= */}
+          {/* =================================
+              MAP CONTAINER
+          ================================= */}
 
           <Box
             sx={{
@@ -1220,6 +776,8 @@ function App() {
               ...dashboardAnimationDelay(260),
             }}
           >
+            {/* MAP */}
+
             <SamalMap
               selectedBarangayId={selectedBarangayId}
               selectedCrimeId={selectedCrimeId}
@@ -1227,14 +785,9 @@ function App() {
               onBarangayChange={handleMapBarangayChange}
             />
 
-            {/* ===============================================
+            {/* =================================
                 MUNICIPALITY INFORMATION
-
-                This small map overlay identifies the geographic
-                area being visualized.
-
-                Clicking a barangay boundary opens its statistics.
-            =============================================== */}
+            ================================= */}
 
             <Box
               sx={{
@@ -1332,20 +885,9 @@ function App() {
               </Typography>
             </Box>
 
-            {/* ===============================================
-                CASE INTENSITY LEGEND
-
-                This explains how to read the colors shown on
-                the map.
-
-                IMPORTANT:
-
-                "Very High", "High", "Moderate", and "Low"
-                are relative comparisons against the highest
-                barangay under the current filters.
-
-                They are NOT official criminological risk levels.
-            =============================================== */}
+            {/* =================================
+                MAP LEGEND
+            ================================= */}
 
             <Box
               sx={{
@@ -1373,7 +915,7 @@ function App() {
                 ...dashboardAnimationDelay(700),
               }}
             >
-              {/* SHOW / HIDE LEGEND */}
+              {/* SHOW / HIDE */}
 
               <Button
                 size="small"
@@ -1404,12 +946,17 @@ function App() {
 
                   "&:hover": {
                     bgcolor: "#FFFFFF",
+
                     boxShadow: "0 5px 16px rgba(15,61,86,0.16)",
                   },
                 }}
               >
                 {legendOpen ? "Hide Legend" : "Show Legend"}
               </Button>
+
+              {/* =================================
+                  LEGEND CONTENT
+              ================================= */}
 
               {legendOpen && (
                 <Box
@@ -1448,6 +995,8 @@ function App() {
                     ...dashboardScaleIn,
                   }}
                 >
+                  {/* TITLE */}
+
                   <Typography
                     variant="caption"
                     sx={{
@@ -1475,12 +1024,9 @@ function App() {
                     Relative to the highest barangay under the current filters
                   </Typography>
 
-                  {/* =========================================
+                  {/* =================================
                       SELECTED CRIME COLOR
-
-                      Only displayed when an individual crime
-                      has been selected.
-                  ========================================= */}
+                  ================================= */}
 
                   {selectedCrime && (
                     <Box
@@ -1516,7 +1062,11 @@ function App() {
                           }}
                         />
 
-                        <Box sx={{ minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            minWidth: 0,
+                          }}
+                        >
                           <Typography
                             variant="caption"
                             sx={{
@@ -1554,9 +1104,9 @@ function App() {
                     </Box>
                   )}
 
-                  {/* =========================================
+                  {/* =================================
                       INTENSITY LEVELS
-                  ========================================= */}
+                  ================================= */}
 
                   <Stack spacing={0.8}>
                     {legendItems.map((item) => (
@@ -1617,14 +1167,9 @@ function App() {
                     ))}
                   </Stack>
 
-                  {/* =========================================
+                  {/* =================================
                       SELECTED BARANGAY
-
-                      Yellow outline identifies the barangay the
-                      user has currently selected.
-
-                      Yellow does NOT indicate crime severity.
-                  ========================================= */}
+                  ================================= */}
 
                   <Box
                     sx={{
@@ -1670,23 +1215,9 @@ function App() {
                     </Stack>
                   </Box>
 
-                  {/* =========================================
+                  {/* =================================
                       DATA STATUS
-
-                      This is one of the most important parts for
-                      the research methodology.
-
-                      REPORTED:
-                      Complete 2024–2026 barangay totals are
-                      supported by the reported data.
-
-                      ESTIMATED:
-                      Specific-year barangay values require the
-                      estimated Crime × Year × Barangay allocation.
-
-                      Therefore, estimated values should NEVER be
-                      described as directly reported incidents.
-                  ========================================= */}
+                  ================================= */}
 
                   <Box
                     sx={{
@@ -1798,22 +1329,9 @@ function App() {
           </Box>
         </Box>
 
-        {/* ===================================================
-            SELECTED CRIME INFORMATION
-
-            Appears only when one crime has been selected.
-
-            Shows:
-            - crime name
-            - total recorded cases for 2024–2026
-            - crime visualization color
-            - button for definition/legal information
-
-            IMPORTANT:
-
-            The color indicator is only an interface identifier.
-            It does not indicate legal seriousness or severity.
-        =================================================== */}
+        {/* =================================
+            SELECTED CRIME CARD
+        ================================= */}
 
         {selectedCrime && (
           <Box
@@ -1866,6 +1384,8 @@ function App() {
                 alignItems: "center",
               }}
             >
+              {/* CRIME COLOR INDICATOR */}
+
               <Box
                 sx={{
                   width: 46,
@@ -1887,7 +1407,11 @@ function App() {
                 <InfoOutlined />
               </Box>
 
-              <Box sx={{ minWidth: 0 }}>
+              <Box
+                sx={{
+                  minWidth: 0,
+                }}
+              >
                 <Typography
                   variant="caption"
                   color="text.secondary"
@@ -1971,19 +1495,9 @@ function App() {
           </Box>
         )}
 
-        {/* ===================================================
+        {/* =================================
             CRIME ANALYTICS
-
-            Displays charts based on the current filters.
-
-            The component receives the SAME selections as the map,
-            keeping the dashboard synchronized.
-
-            Charts describe the available data.
-
-            They should not independently be interpreted as proof
-            of causation, dangerousness, or crime risk.
-        =================================================== */}
+        ================================= */}
 
         <Box
           sx={{
@@ -2006,28 +1520,9 @@ function App() {
             />
           </Box>
 
-          {/* =================================================
+          {/* =================================
               AREA SUMMARY
-
-              Compares barangays according to the number of cases
-              produced by the current filters.
-
-              IMPORTANT:
-
-              A barangay being ranked #1 only means that it has
-              the highest CASE COUNT in that comparison.
-
-              It does NOT automatically mean:
-
-              - most dangerous barangay
-              - highest crime risk
-              - worst barangay
-              - least safe barangay
-
-              Additional variables such as population, exposure,
-              reporting practices, and time at risk would be
-              required for broader criminological conclusions.
-          ================================================= */}
+          ================================= */}
 
           <Box
             sx={{
@@ -2045,9 +1540,9 @@ function App() {
         </Box>
       </Container>
 
-      {/* =====================================================
+      {/* =================================
           DASHBOARD FOOTER
-      ===================================================== */}
+      ================================= */}
 
       <Box
         component="footer"
@@ -2134,25 +1629,9 @@ function App() {
         </Container>
       </Box>
 
-      {/* =====================================================
-          BARANGAY DETAILS DIALOG
-
-          Opens after the user clicks a barangay on the map.
-
-          It receives:
-
-          barangayId
-              → which barangay to describe
-
-          selectedYear
-              → current year filter
-
-          selectedCrimeId
-              → current crime filter
-
-          This allows the dialog to remain synchronized with the
-          rest of the dashboard.
-      ===================================================== */}
+      {/* =================================
+          BARANGAY DETAILS MODAL
+      ================================= */}
 
       <BarangayDetails
         open={barangayDetailsOpen}
@@ -2162,15 +1641,9 @@ function App() {
         onClose={() => setBarangayDetailsOpen(false)}
       />
 
-      {/* =====================================================
-          CRIME DETAILS DIALOG
-
-          Provides descriptive and legal information for the
-          currently selected crime.
-
-          This should be understood as informational context
-          accompanying the statistical visualization.
-      ===================================================== */}
+      {/* =================================
+          CRIME DETAILS MODAL
+      ================================= */}
 
       <CrimeDetails
         open={crimeDetailsOpen}
