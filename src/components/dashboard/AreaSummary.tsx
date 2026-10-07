@@ -14,9 +14,104 @@ import estimatedData from "../../data/crime-year-barangay.json";
 
 import { DEFAULT_CRIME_COLOR, getCrimeColor } from "../../utils/crimeColors";
 
-/* =========================================
-   TYPES
-========================================= */
+/* =========================================================
+   BANTAY SAMAL - AREA SUMMARY
+   =========================================================
+
+   PURPOSE OF THIS COMPONENT
+
+   This component gives the user a simple summary of crime
+   statistics across the 14 barangays of Samal, Bataan.
+
+   It answers questions such as:
+
+   - How many cases are included in the current filters?
+   - Which barangay has the highest number of cases?
+   - How many cases are shown for the selected barangay?
+   - What is the selected barangay's rank?
+   - How do all 14 barangays compare with one another?
+
+
+   SIMPLE EXAMPLE:
+
+   User selects:
+
+   Crime: Malicious Mischief
+   Year: 2025
+
+              ↓
+
+   Area Summary calculates:
+
+   Municipality Total
+   Highest Barangay
+   Selected Barangay
+   Barangay Rank
+   Complete Barangay Ranking
+
+
+   IMPORTANT:
+
+   This component does NOT determine whether a barangay is
+   safe or dangerous.
+
+   It only summarizes and compares the number of cases
+   available under the selected filters.
+========================================================= */
+
+/* =========================================================
+   DATA SOURCES
+   =========================================================
+
+   crimes.json
+
+   Contains the reported crime statistics, including:
+
+   - Municipality total
+   - Yearly totals
+   - Crime totals
+   - Crime × Year totals
+   - Crime × Barangay totals
+   - Barangay totals
+
+
+   crime-year-barangay.json
+
+   Contains ESTIMATED allocations used when the user
+   requests a specific:
+
+   Crime × Year × Barangay
+
+   combination.
+
+
+   crimeColors.ts
+
+   Provides the visual color assigned to the selected
+   crime.
+
+   The colors help keep the dashboard visually consistent.
+========================================================= */
+
+/* =========================================================
+   COMPONENT INPUTS
+   =========================================================
+
+   These values come from the main dashboard.
+
+   selectedYear
+   → The year selected by the user.
+
+   selectedCrimeId
+   → The crime selected by the user.
+
+   selectedBarangayId
+   → The barangay selected by the user.
+
+   onBarangayChange
+   → Tells the dashboard when the user selects a barangay
+     from this ranking.
+========================================================= */
 
 type AreaSummaryProps = {
   selectedYear: string;
@@ -26,17 +121,64 @@ type AreaSummaryProps = {
   onBarangayChange: (barangayId: string) => void;
 };
 
+/* =========================================================
+   DATA TYPES
+   =========================================================
+
+   These types tell TypeScript how the estimated allocation
+   data is organized.
+
+   BarangayCounts
+
+   Example:
+
+   {
+     gugo: 3,
+     ibaba: 1,
+     lalawigan: 2
+   }
+
+
+   YearAllocations
+
+   Example:
+
+   {
+     "2024": {...barangay counts...},
+     "2025": {...barangay counts...},
+     "2026": {...barangay counts...}
+   }
+
+
+   CrimeAllocations
+
+   Stores the yearly allocations for every crime.
+========================================================= */
+
 type BarangayCounts = Record<string, number>;
 
 type YearAllocations = Record<string, BarangayCounts>;
 
 type CrimeAllocations = Record<string, YearAllocations>;
 
+/*
+   Get the estimated Crime × Year × Barangay allocation
+   information from the JSON dataset.
+*/
+
 const allocations = estimatedData.allocations as CrimeAllocations;
 
-/* =========================================
-   BARANGAYS
-========================================= */
+/* =========================================================
+   14 BARANGAYS OF SAMAL
+   =========================================================
+
+   This list gives the system the ID and readable name of
+   every barangay included in Bantay Samal.
+
+   The ID is used internally by the program.
+
+   The name is what the user sees on the dashboard.
+========================================================= */
 
 const barangays = [
   {
@@ -97,9 +239,9 @@ const barangays = [
   },
 ];
 
-/* =========================================
-   COMPONENT
-========================================= */
+/* =========================================================
+   MAIN AREA SUMMARY COMPONENT
+========================================================= */
 
 export default function AreaSummary({
   selectedYear,
@@ -107,9 +249,31 @@ export default function AreaSummary({
   selectedBarangayId,
   onBarangayChange,
 }: AreaSummaryProps) {
-  /* =========================================
-     SELECTED CRIME
-  ========================================= */
+  /* =======================================================
+     FIND THE SELECTED CRIME
+     =======================================================
+
+     The dashboard stores the selected crime using an ID.
+
+     Example:
+
+     selectedCrimeId:
+     "malicious-mischief"
+
+              ↓
+
+     The system searches crimes.json
+
+              ↓
+
+     It finds:
+
+     Malicious Mischief
+
+
+     If "all" is selected, there is no single crime record
+     because the user is viewing all crimes together.
+  ======================================================= */
 
   const selectedCrime = useMemo(() => {
     if (selectedCrimeId === "all") {
@@ -121,18 +285,59 @@ export default function AreaSummary({
     );
   }, [selectedCrimeId]);
 
-  /* =========================================
+  /* =======================================================
      ACTIVE CRIME COLOR
-  ========================================= */
+     =======================================================
+
+     Every crime has an assigned dashboard color.
+
+     Example:
+
+     Malicious Mischief
+              ↓
+     Assigned crime color
+
+     That color is used for:
+
+     - Icons
+     - Progress bars
+     - Selected barangay
+     - Ranking highlights
+
+     If "All Crimes" is selected, the dashboard uses the
+     default crime color.
+  ======================================================= */
 
   const activeColor =
     selectedCrimeId === "all"
       ? DEFAULT_CRIME_COLOR
       : getCrimeColor(selectedCrimeId);
 
-  /* =========================================
-     SELECTED BARANGAY
-  ========================================= */
+  /* =======================================================
+     FIND THE SELECTED BARANGAY
+     =======================================================
+
+     Example:
+
+     selectedBarangayId = "gugo"
+
+              ↓
+
+     Search the barangay list
+
+              ↓
+
+     Return:
+
+     {
+       id: "gugo",
+       name: "Gugo"
+     }
+
+
+     If "All Barangays" is selected, no individual
+     barangay is returned.
+  ======================================================= */
 
   const selectedBarangay = useMemo(() => {
     return (
@@ -140,26 +345,80 @@ export default function AreaSummary({
     );
   }, [selectedBarangayId]);
 
-  /* =========================================
-     BARANGAY VALUES
+  /* =======================================================
+     CALCULATE THE VALUE OF EVERY BARANGAY
+     =======================================================
 
-     ALL YEARS:
-     Reported barangay values.
+     This is one of the most important parts of the
+     Area Summary.
 
-     SPECIFIC YEAR:
-     Estimated barangay allocations.
-  ========================================= */
+
+     THERE ARE TWO SITUATIONS:
+
+
+     1. ALL YEARS / 2024-2026
+
+        Barangay values come from the REPORTED dataset.
+
+
+     2. SPECIFIC YEAR
+
+        Barangay values come from the ESTIMATED allocation
+        dataset.
+
+
+     WHY?
+
+     The available reported data provides Crime × Barangay
+     totals for the complete reporting period.
+
+     However, it does not provide every exact:
+
+     Crime × Year × Barangay
+
+     combination.
+
+     Therefore, specific-year barangay values use the
+     estimated allocation dataset.
+  ======================================================= */
 
   const barangayValues = useMemo(() => {
+    /*
+         Go through all 14 barangays.
+      */
+
     return barangays.map((barangay) => {
+      /*
+             Start the barangay at zero cases.
+          */
+
       let value = 0;
 
-      /* ===============================
-           ALL YEARS
-      =============================== */
+      /* =================================================
+             SITUATION 1:
+             ALL YEARS / 2024-2026
+             =================================================
+
+             These barangay values are based on reported
+             totals.
+          ================================================= */
 
       if (selectedYear === "all") {
-        /* ALL CRIMES */
+        /* -----------------------------------------------
+               ALL CRIMES + ALL YEARS
+
+               Example:
+
+               Crime:
+               All Crimes
+
+               Year:
+               2024-2026
+
+                        ↓
+
+               Use the reported total for each barangay.
+            ----------------------------------------------- */
 
         if (selectedCrimeId === "all") {
           value =
@@ -167,8 +426,22 @@ export default function AreaSummary({
               barangay.id as keyof typeof crimesData.barangayTotals
             ] ?? 0;
         } else if (selectedCrime) {
-          /* SPECIFIC CRIME */
 
+        /* -----------------------------------------------
+               SPECIFIC CRIME + ALL YEARS
+
+               Example:
+
+               Crime:
+               Malicious Mischief
+
+               Year:
+               2024-2026
+
+                        ↓
+
+               Use the reported Crime × Barangay total.
+            ----------------------------------------------- */
           const crimeBarangays = selectedCrime.barangays as Record<
             string,
             number
@@ -177,18 +450,56 @@ export default function AreaSummary({
           value = crimeBarangays[barangay.id] ?? 0;
         }
       } else {
-        /* ===============================
-             SPECIFIC YEAR
-        =============================== */
 
-        /* SPECIFIC CRIME */
+      /* =================================================
+             SITUATION 2:
+             SPECIFIC YEAR
+             =================================================
+
+             Barangay values are estimated because the exact
+             Crime × Year × Barangay breakdown was not
+             available as reported source data.
+          ================================================= */
+        /* -----------------------------------------------
+               SPECIFIC CRIME + SPECIFIC YEAR
+
+               Example:
+
+               Crime:
+               Malicious Mischief
+
+               Year:
+               2025
+
+               Barangay:
+               Gugo
+
+                        ↓
+
+               Use estimated allocation.
+            ----------------------------------------------- */
 
         if (selectedCrimeId !== "all") {
           value =
             allocations[selectedCrimeId]?.[selectedYear]?.[barangay.id] ?? 0;
         } else {
-          /* ALL CRIMES */
 
+        /* -----------------------------------------------
+               ALL CRIMES + SPECIFIC YEAR
+
+               Example:
+
+               Crime:
+               All Crimes
+
+               Year:
+               2025
+
+                        ↓
+
+               Add the estimated values from every crime
+               category for this barangay.
+            ----------------------------------------------- */
           value = Object.values(allocations).reduce(
             (total, crimeAllocation) => {
               return (
@@ -200,6 +511,19 @@ export default function AreaSummary({
         }
       }
 
+      /*
+             Return the barangay together with its
+             calculated value.
+
+             Example:
+
+             {
+               id: "gugo",
+               name: "Gugo",
+               value: 10
+             }
+          */
+
       return {
         ...barangay,
         value,
@@ -207,23 +531,88 @@ export default function AreaSummary({
     });
   }, [selectedYear, selectedCrimeId, selectedCrime]);
 
-  /* =========================================
-     RANKING
-  ========================================= */
+  /* =======================================================
+     RANK THE BARANGAYS
+     =======================================================
+
+     The barangays are arranged from the highest case count
+     to the lowest case count.
+
+
+     EXAMPLE:
+
+     Gugo               10
+     Lalawigan            8
+     East Calaguiman      5
+     Ibaba                 2
+
+              ↓
+
+     Ranking:
+
+     #1 Gugo
+     #2 Lalawigan
+     #3 East Calaguiman
+     #4 Ibaba
+
+
+     If two barangays have the same number of cases, their
+     names are arranged alphabetically.
+
+
+     IMPORTANT CRIMINOLOGY NOTE:
+
+     Rank #1 means:
+
+     "This barangay has the highest case count under the
+     current filters."
+
+     It does NOT automatically mean:
+
+     "This is the most dangerous barangay."
+  ======================================================= */
 
   const rankedBarangays = useMemo(() => {
     return [...barangayValues].sort((a, b) => {
+      /*
+           First sort by case count.
+        */
+
       if (b.value !== a.value) {
         return b.value - a.value;
       }
+
+      /*
+           If the counts are equal, sort alphabetically.
+        */
 
       return a.name.localeCompare(b.name);
     });
   }, [barangayValues]);
 
-  /* =========================================
-     SELECTED VALUE
-  ========================================= */
+  /* =======================================================
+     SELECTED BARANGAY VALUE
+     =======================================================
+
+     If the user selects a barangay, find how many cases
+     are currently shown for that barangay.
+
+     Example:
+
+     Selected:
+     Gugo
+
+     Current filters:
+     Malicious Mischief + 2025
+
+              ↓
+
+     Selected Value:
+     3 cases
+
+
+     If no individual barangay is selected, return null.
+  ======================================================= */
 
   const selectedValue = useMemo(() => {
     if (!selectedBarangay) {
@@ -236,58 +625,162 @@ export default function AreaSummary({
     );
   }, [barangayValues, selectedBarangay]);
 
-  /* =========================================
-     SELECTED RANK
-  ========================================= */
+  /* =======================================================
+     SELECTED BARANGAY RANK
+     =======================================================
+
+     This finds the selected barangay's position in the
+     ranking.
+
+     Example:
+
+     #1 Gugo
+     #2 Lalawigan
+     #3 Ibaba
+
+     If Ibaba is selected:
+
+     selectedRank = 3
+  ======================================================= */
 
   const selectedRank = useMemo(() => {
+    /*
+         No barangay selected.
+      */
+
     if (!selectedBarangay) {
       return null;
     }
+
+    /*
+         Find the selected barangay in the ranked list.
+      */
 
     const index = rankedBarangays.findIndex(
       (barangay) => barangay.id === selectedBarangay.id,
     );
 
+    /*
+         Stop if it cannot be found.
+      */
+
     if (index === -1) {
       return null;
     }
 
+    /*
+         Array positions start at 0.
+
+         Human-readable rankings start at 1.
+
+         Therefore:
+
+         index 0 → Rank #1
+         index 1 → Rank #2
+         index 2 → Rank #3
+      */
+
     return index + 1;
   }, [rankedBarangays, selectedBarangay]);
 
-  /* =========================================
+  /* =======================================================
      HIGHEST BARANGAY
-  ========================================= */
+     =======================================================
+
+     Because rankedBarangays is already arranged from
+     highest to lowest, the first barangay is the one with
+     the highest case count.
+
+     IMPORTANT:
+
+     "Highest" refers only to the current filters.
+  ======================================================= */
 
   const highestBarangay = rankedBarangays[0];
 
-  /* =========================================
-     MAX VALUE FOR PROGRESS BARS
-  ========================================= */
+  /* =======================================================
+     MAXIMUM VALUE FOR PROGRESS BARS
+     =======================================================
+
+     The highest barangay is used as the reference point
+     for the progress bars.
+
+     EXAMPLE:
+
+     Highest barangay = 10 cases
+
+     Gugo        10 → 100%
+     Lalawigan    5 → 50%
+     Ibaba         2 → 20%
+
+
+     The progress bars are visual comparisons.
+
+     They are NOT percentages of crime risk.
+  ======================================================= */
 
   const maxBarangayValue = Math.max(highestBarangay?.value ?? 0, 1);
 
-  /* =========================================
-     MUNICIPALITY TOTAL
+  /* =======================================================
+     MUNICIPALITY-WIDE TOTAL
+     =======================================================
 
-     Municipality totals remain reported
-     because the source provides:
+     This number is handled differently from the detailed
+     barangay allocation.
 
-     - overall total
-     - yearly totals
-     - crime totals
-     - crime × year totals
-  ========================================= */
+     The municipality total remains REPORTED because the
+     source dataset directly provides:
+
+     - Overall municipality total
+     - Yearly municipality totals
+     - Crime totals
+     - Crime × Year totals
+
+
+     Therefore, even if the individual barangay values for
+     a specific year are estimated, the municipality-wide
+     total can still use reported data.
+
+
+     THIS IS AN IMPORTANT DISTINCTION:
+
+     Example:
+
+     Malicious Mischief + 2025
+
+     Municipality total:
+     REPORTED
+
+     Individual barangay allocation:
+     ESTIMATED
+  ======================================================= */
 
   const municipalityTotal = useMemo(() => {
-    /* ALL CRIMES + ALL YEARS */
+    /* ---------------------------------------------------
+         ALL CRIMES + ALL YEARS
+
+         Example:
+
+         All Crimes
+         2024-2026
+
+         Use the reported overall total.
+      --------------------------------------------------- */
 
     if (selectedCrimeId === "all" && selectedYear === "all") {
       return crimesData.meta.totalReportedCases;
     }
 
-    /* ALL CRIMES + YEAR */
+    /* ---------------------------------------------------
+         ALL CRIMES + SPECIFIC YEAR
+
+         Example:
+
+         All Crimes
+         2025
+
+         Use the reported 2025 municipality total.
+      --------------------------------------------------- */
 
     if (selectedCrimeId === "all" && selectedYear !== "all") {
       return (
@@ -297,13 +790,31 @@ export default function AreaSummary({
       );
     }
 
-    /* CRIME + ALL YEARS */
+    /* ---------------------------------------------------
+         SPECIFIC CRIME + ALL YEARS
+
+         Example:
+
+         Malicious Mischief
+         2024-2026
+
+         Use the reported total for that crime.
+      --------------------------------------------------- */
 
     if (selectedCrime && selectedYear === "all") {
       return selectedCrime.total;
     }
 
-    /* CRIME + YEAR */
+    /* ---------------------------------------------------
+         SPECIFIC CRIME + SPECIFIC YEAR
+
+         Example:
+
+         Malicious Mischief
+         2025
+
+         Use the reported Crime × Year total.
+      --------------------------------------------------- */
 
     if (selectedCrime && selectedYear !== "all") {
       return (
@@ -313,25 +824,72 @@ export default function AreaSummary({
       );
     }
 
+    /*
+         Fallback value.
+      */
+
     return 0;
   }, [selectedYear, selectedCrimeId, selectedCrime]);
 
-  /* =========================================
+  /* =======================================================
      DISPLAY LABELS
-  ========================================= */
+     =======================================================
+
+     These values make the raw IDs easier for users to
+     understand.
+  ======================================================= */
+
+  /*
+     "all" becomes "2024–2026".
+
+     Otherwise display the selected year.
+  */
 
   const yearLabel = selectedYear === "all" ? "2024–2026" : selectedYear;
 
+  /*
+     Show the actual crime name.
+
+     If no specific crime is selected:
+
+     "All Crimes"
+  */
+
   const crimeLabel = selectedCrime?.name ?? "All Crimes";
+
+  /*
+     If a specific year is selected, the barangay-level
+     values are estimated.
+
+     If all years are selected, the barangay values are
+     reported.
+  */
 
   const isBarangayDataEstimated = selectedYear !== "all";
 
-  /* =========================================
-     HANDLE BARANGAY SELECTION
-  ========================================= */
+  /* =======================================================
+     SELECT A BARANGAY FROM THE RANKING
+     =======================================================
+
+     When a user clicks one of the barangays in the ranking:
+
+     1. Tell the main dashboard which barangay was selected.
+     2. Smoothly scroll back to the top of the page.
+
+     This allows the map and other dashboard sections to
+     update to the same barangay.
+  ======================================================= */
 
   const handleBarangaySelect = (barangayId: string) => {
+    /*
+       Update the dashboard selection.
+    */
+
     onBarangayChange(barangayId);
+
+    /*
+       Move the user back toward the top of the dashboard.
+    */
 
     window.scrollTo({
       top: 0,
@@ -339,9 +897,23 @@ export default function AreaSummary({
     });
   };
 
-  /* =========================================
-     RETURN
-  ========================================= */
+  /* =======================================================
+     USER INTERFACE
+     =======================================================
+
+     Everything below controls what the user actually sees.
+
+     The Area Summary contains:
+
+     1. Header
+     2. Data-status label
+     3. Municipality Total
+     4. Highest Count
+     5. Selected Barangay
+     6. Barangay Rank
+     7. Complete Barangay Ranking
+     8. Methodology Notice
+  ======================================================= */
 
   return (
     <Paper
@@ -364,9 +936,17 @@ export default function AreaSummary({
         overflow: "hidden",
       }}
     >
-      {/* =================================
-          HEADER
-      ================================= */}
+      {/* =================================================
+          AREA SUMMARY HEADER
+
+          Shows:
+
+          - Section title
+          - Selected crime
+          - Selected year
+          - Whether barangay values are reported or
+            estimated
+      ================================================= */}
 
       <Stack
         direction={{
@@ -391,9 +971,12 @@ export default function AreaSummary({
           spacing={1}
           sx={{
             minWidth: 0,
+
             alignItems: "flex-start",
           }}
         >
+          {/* Section icon */}
+
           <Box
             sx={{
               width: 38,
@@ -402,6 +985,7 @@ export default function AreaSummary({
               flexShrink: 0,
 
               display: "grid",
+
               placeItems: "center",
 
               borderRadius: 2,
@@ -417,6 +1001,8 @@ export default function AreaSummary({
               }}
             />
           </Box>
+
+          {/* Section title */}
 
           <Box
             sx={{
@@ -436,6 +1022,8 @@ export default function AreaSummary({
               Area Summary
             </Typography>
 
+            {/* Current crime and year */}
+
             <Typography
               variant="caption"
               color="text.secondary"
@@ -453,6 +1041,20 @@ export default function AreaSummary({
             </Typography>
           </Box>
         </Stack>
+
+        {/* =================================================
+            DATA STATUS
+
+            Green:
+            Reported Barangay Data
+
+            Brown/Amber:
+            Estimated Barangay Allocation
+
+            This is important because the user should always
+            know whether the barangay-level values are
+            directly reported or estimated.
+        ================================================= */}
 
         <Chip
           size="small"
@@ -488,6 +1090,8 @@ export default function AreaSummary({
         />
       </Stack>
 
+      {/* Divider between header and summary */}
+
       <Divider
         sx={{
           my: {
@@ -497,9 +1101,16 @@ export default function AreaSummary({
         }}
       />
 
-      {/* =================================
+      {/* =================================================
           SUMMARY CARDS
-      ================================= */}
+
+          These four cards give the user a quick overview:
+
+          1. Municipality Total
+          2. Highest Count
+          3. Selected Barangay
+          4. Barangay Rank
+      ================================================= */}
 
       <Box
         sx={{
@@ -517,7 +1128,14 @@ export default function AreaSummary({
           },
         }}
       >
-        {/* MUNICIPALITY TOTAL */}
+        {/* =================================================
+            CARD 1: MUNICIPALITY TOTAL
+
+            This is the municipality-wide number of cases
+            under the current filters.
+
+            This value remains REPORTED.
+        ================================================= */}
 
         <Box
           sx={{
@@ -567,6 +1185,8 @@ export default function AreaSummary({
             </Typography>
           </Stack>
 
+          {/* Reported total */}
+
           <Typography
             variant="h4"
             sx={{
@@ -598,7 +1218,17 @@ export default function AreaSummary({
           </Typography>
         </Box>
 
-        {/* HIGHEST BARANGAY */}
+        {/* =================================================
+            CARD 2: HIGHEST BARANGAY COUNT
+
+            Shows the largest barangay case count under the
+            current filters.
+
+            IMPORTANT:
+
+            "Highest Count" does NOT automatically mean
+            "Most Dangerous Barangay."
+        ================================================= */}
 
         <Box
           sx={{
@@ -648,6 +1278,8 @@ export default function AreaSummary({
             </Typography>
           </Stack>
 
+          {/* Highest case count */}
+
           <Typography
             variant="h4"
             sx={{
@@ -666,6 +1298,8 @@ export default function AreaSummary({
             {highestBarangay?.value ?? 0}
           </Typography>
 
+          {/* Name of the highest barangay */}
+
           <Typography
             variant="caption"
             color="text.secondary"
@@ -683,7 +1317,17 @@ export default function AreaSummary({
           </Typography>
         </Box>
 
-        {/* SELECTED BARANGAY */}
+        {/* =================================================
+            CARD 3: SELECTED BARANGAY
+
+            Shows the case count of the barangay currently
+            selected by the user.
+
+            If no barangay is selected:
+
+            Value → —
+            Name  → All Barangays
+        ================================================= */}
 
         <Box
           sx={{
@@ -733,6 +1377,8 @@ export default function AreaSummary({
             </Typography>
           </Stack>
 
+          {/* Selected barangay case count */}
+
           <Typography
             variant="h4"
             sx={{
@@ -751,6 +1397,8 @@ export default function AreaSummary({
             {selectedBarangay ? selectedValue : "—"}
           </Typography>
 
+          {/* Selected barangay name */}
+
           <Typography
             variant="caption"
             color="text.secondary"
@@ -768,7 +1416,24 @@ export default function AreaSummary({
           </Typography>
         </Box>
 
-        {/* RANK */}
+        {/* =================================================
+            CARD 4: BARANGAY RANK
+
+            Shows the selected barangay's position among
+            the 14 barangays under the current filters.
+
+            Example:
+
+            #3
+            among 14 barangays
+
+
+            IMPORTANT:
+
+            Ranking is based only on case count.
+
+            It is NOT an official danger or safety ranking.
+        ================================================= */}
 
         <Box
           sx={{
@@ -818,6 +1483,8 @@ export default function AreaSummary({
             </Typography>
           </Stack>
 
+          {/* Rank number */}
+
           <Typography
             variant="h4"
             sx={{
@@ -850,9 +1517,23 @@ export default function AreaSummary({
         </Box>
       </Box>
 
-      {/* =================================
-          BARANGAY RANKING
-      ================================= */}
+      {/* =================================================
+          COMPLETE BARANGAY RANKING
+
+          This section lists all 14 barangays from the
+          highest case count to the lowest case count.
+
+          Users can click a barangay to select it.
+
+          The progress bar provides a quick visual
+          comparison with the highest barangay.
+
+          IMPORTANT:
+
+          The progress bar represents relative case count.
+
+          It is NOT a crime-risk percentage.
+      ================================================= */}
 
       <Box
         sx={{
@@ -894,7 +1575,43 @@ export default function AreaSummary({
           }}
         >
           {rankedBarangays.map((barangay, index) => {
+            /*
+                 Check whether this row is the currently
+                 selected barangay.
+              */
+
             const isSelected = barangay.id === selectedBarangayId;
+
+            /* ===========================================
+                 PROGRESS BAR CALCULATION
+
+                 Formula:
+
+                 Barangay cases
+                 ---------------- × 100
+                 Highest cases
+
+
+                 Example:
+
+                 Highest = 10 cases
+
+                 Barangay = 5 cases
+
+                 5 ÷ 10 × 100 = 50%
+
+
+                 If the barangay has cases but the calculated
+                 bar would be extremely small, the system
+                 displays at least 4% so it remains visible.
+
+
+                 IMPORTANT:
+
+                 This percentage is a VISUAL COMPARISON.
+
+                 It is not a percentage of crime risk.
+              =========================================== */
 
             const progress =
               barangay.value === 0
@@ -904,12 +1621,40 @@ export default function AreaSummary({
             return (
               <Box
                 key={barangay.id}
+                /*
+                     Makes the row behave like a button.
+                  */
+
                 role="button"
+                /*
+                     Allows keyboard users to focus the row.
+                  */
+
                 tabIndex={0}
+                /*
+                     Accessibility description.
+                  */
+
                 aria-label={`Select ${barangay.name}, ${barangay.value} ${
                   barangay.value === 1 ? "case" : "cases"
                 }`}
+                /* ---------------------------------------
+                     MOUSE SELECTION
+
+                     Clicking the row selects the barangay.
+                  --------------------------------------- */
+
                 onClick={() => handleBarangaySelect(barangay.id)}
+                /* ---------------------------------------
+                     KEYBOARD SELECTION
+
+                     Pressing Enter or Space also selects
+                     the barangay.
+
+                     This makes the dashboard more
+                     accessible.
+                  --------------------------------------- */
+
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
@@ -958,6 +1703,11 @@ export default function AreaSummary({
                   transition:
                     "border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease",
 
+                  /*
+                       Highlight the row when the mouse
+                       moves over it.
+                    */
+
                   "&:hover": {
                     borderColor: activeColor,
 
@@ -966,6 +1716,10 @@ export default function AreaSummary({
                     boxShadow: "0 3px 10px rgba(15,61,86,0.07)",
                   },
 
+                  /*
+                       Keyboard accessibility outline.
+                    */
+
                   "&:focus-visible": {
                     outline: `2px solid ${activeColor}`,
 
@@ -973,7 +1727,16 @@ export default function AreaSummary({
                   },
                 }}
               >
-                {/* RANK */}
+                {/* =====================================
+                      RANK NUMBER
+
+                      Example:
+
+                      1
+                      2
+                      3
+                      4
+                  ===================================== */}
 
                 <Box
                   sx={{
@@ -993,6 +1756,11 @@ export default function AreaSummary({
 
                     borderRadius: "50%",
 
+                    /*
+                         Give the #1 barangay a stronger
+                         visual highlight.
+                      */
+
                     bgcolor:
                       index === 0 ? `${activeColor}16` : "rgba(15,61,86,0.05)",
 
@@ -1009,7 +1777,16 @@ export default function AreaSummary({
                   {index + 1}
                 </Box>
 
-                {/* BARANGAY */}
+                {/* =====================================
+                      BARANGAY INFORMATION
+
+                      Contains:
+
+                      - Location icon
+                      - Barangay name
+                      - Selected label
+                      - Relative progress bar
+                  ===================================== */}
 
                 <Box
                   sx={{
@@ -1021,6 +1798,7 @@ export default function AreaSummary({
                     spacing={0.7}
                     sx={{
                       minWidth: 0,
+
                       alignItems: "center",
                     }}
                   >
@@ -1033,6 +1811,8 @@ export default function AreaSummary({
                         color: isSelected ? activeColor : "text.secondary",
                       }}
                     />
+
+                    {/* Barangay name */}
 
                     <Typography
                       variant="body2"
@@ -1052,6 +1832,8 @@ export default function AreaSummary({
                     >
                       {barangay.name}
                     </Typography>
+
+                    {/* Show "Selected" on desktop */}
 
                     {isSelected && (
                       <Chip
@@ -1079,7 +1861,17 @@ export default function AreaSummary({
                     )}
                   </Stack>
 
-                  {/* PROGRESS */}
+                  {/* ===================================
+                        RELATIVE PROGRESS BAR
+
+                        The highest barangay gets the
+                        longest bar.
+
+                        Other barangays receive shorter
+                        bars based on their case count.
+
+                        This is for visual comparison only.
+                    =================================== */}
 
                   <Box
                     sx={{
@@ -1115,7 +1907,13 @@ export default function AreaSummary({
                   </Box>
                 </Box>
 
-                {/* VALUE */}
+                {/* =====================================
+                      CASE COUNT
+
+                      Displays the number of cases for
+                      this barangay under the current
+                      filters.
+                  ===================================== */}
 
                 <Stack
                   direction={{
@@ -1147,6 +1945,8 @@ export default function AreaSummary({
                     {barangay.value}
                   </Typography>
 
+                  {/* Show case/cases text on larger screens */}
+
                   <Typography
                     variant="caption"
                     color="text.secondary"
@@ -1166,9 +1966,29 @@ export default function AreaSummary({
         </Stack>
       </Box>
 
-      {/* =================================
-          METHODOLOGY NOTICE
-      ================================= */}
+      {/* =================================================
+          METHODOLOGY / DATA STATUS NOTICE
+
+          This notice explains where the barangay values
+          came from.
+
+          ALL YEARS:
+
+          → Reported barangay data
+
+
+          SPECIFIC YEAR:
+
+          → Estimated barangay allocation
+
+
+          IMPORTANT:
+
+          Even when the barangay distribution is estimated,
+          the municipality-wide total remains reported
+          because the yearly municipality total is directly
+          available in the source dataset.
+      ================================================= */}
 
       <Box
         sx={{
@@ -1202,6 +2022,8 @@ export default function AreaSummary({
             alignItems: "flex-start",
           }}
         >
+          {/* Small status indicator */}
+
           <Box
             sx={{
               width: 7,
@@ -1216,6 +2038,8 @@ export default function AreaSummary({
               bgcolor: isBarangayDataEstimated ? "#B45309" : "#0F766E",
             }}
           />
+
+          {/* Data explanation */}
 
           <Typography
             variant="caption"
@@ -1236,3 +2060,182 @@ export default function AreaSummary({
     </Paper>
   );
 }
+
+/* =========================================================
+   SIMPLE SUMMARY FOR CRIMINOLOGY STUDENTS
+   =========================================================
+
+   HOW DOES AREA SUMMARY WORK?
+
+
+   STEP 1
+
+   The user chooses:
+
+   - Crime
+   - Year
+   - Barangay
+
+              ↓
+
+
+   STEP 2
+
+   The system determines whether barangay-level values
+   should use:
+
+   REPORTED DATA
+
+   or
+
+   ESTIMATED ALLOCATION
+
+              ↓
+
+
+   STEP 3
+
+   The system calculates the number of cases for all
+   14 barangays.
+
+              ↓
+
+
+   STEP 4
+
+   The barangays are arranged from the highest case count
+   to the lowest case count.
+
+              ↓
+
+
+   STEP 5
+
+   The system identifies:
+
+   - Municipality total
+   - Highest barangay count
+   - Selected barangay count
+   - Selected barangay rank
+
+              ↓
+
+
+   STEP 6
+
+   The complete ranking is displayed.
+
+              ↓
+
+
+   STEP 7
+
+   Users can click a barangay from the ranking to select
+   it on the dashboard.
+
+
+   =========================================================
+   REPORTED VS ESTIMATED
+   =========================================================
+
+   ALL YEARS / 2024-2026
+
+   Barangay values:
+   REPORTED
+
+
+   SPECIFIC YEAR
+
+   Barangay values:
+   ESTIMATED
+
+
+   MUNICIPALITY-WIDE TOTAL
+
+   Remains REPORTED because the dataset directly provides
+   the municipality totals by year and crime.
+
+
+   =========================================================
+   HOW TO INTERPRET THE RANKING
+   =========================================================
+
+   A higher rank means that the barangay has a higher
+   number of cases under the CURRENT filters.
+
+   For example:
+
+   #1 Gugo        = 10 cases
+   #2 Lalawigan   = 8 cases
+   #3 Ibaba       = 5 cases
+
+
+   This DOES mean:
+
+   "Gugo has the highest number of cases under the current
+   crime and year filters."
+
+
+   This DOES NOT automatically mean:
+
+   "Gugo is the most dangerous barangay."
+
+
+   Case count alone does not automatically measure:
+
+   - Crime risk
+   - Public safety
+   - Population-adjusted crime rate
+   - Probability of victimization
+   - Official hotspot classification
+
+
+   =========================================================
+   PROGRESS BAR INTERPRETATION
+   =========================================================
+
+   The progress bar compares each barangay with the
+   barangay having the highest case count.
+
+   Example:
+
+   Highest barangay:
+   10 cases = 100%
+
+   Another barangay:
+   5 cases = 50%
+
+   Another barangay:
+   2 cases = 20%
+
+
+   These percentages are VISUAL COMPARISONS.
+
+   They are NOT crime-risk percentages.
+
+
+   =========================================================
+   FINAL CRIMINOLOGY EXPLANATION
+   =========================================================
+
+   The Area Summary component helps users compare the
+   distribution of crime cases among the 14 barangays of
+   Samal, Bataan.
+
+   It identifies which barangays have higher or lower case
+   counts under the selected crime and year filters and
+   presents the information through totals, rankings, and
+   progress bars.
+
+   The component also distinguishes reported data from
+   estimated barangay allocations.
+
+   The rankings should be interpreted as comparisons of
+   CASE COUNTS only and should not automatically be used
+   to classify a barangay as safe, dangerous, or an
+   official crime hotspot.
+
+   The purpose of this component is to make crime
+   statistics easier for criminology students, researchers,
+   and other users to understand and compare.
+========================================================= */

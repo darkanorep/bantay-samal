@@ -16,15 +16,174 @@ import estimatedData from "../../data/crime-year-barangay.json";
 
 import { getCrimeColor } from "../../utils/crimeColors";
 
-/* =========================================
-   TYPES
-========================================= */
+/* =========================================================
+   BANTAY SAMAL - CRIME ANALYTICS
+   =========================================================
+
+   PURPOSE
+
+   CrimeAnalytics is responsible for converting the crime
+   data into easy-to-understand charts.
+
+   It contains two main visualizations:
+
+   1. YEARLY TREND
+      Shows how the number of cases changes from:
+
+      2024 → 2025 → 2026
+
+
+   2. CRIME BREAKDOWN
+      Shows the crime categories with the highest number
+      of cases under the current filters.
+
+
+   SIMPLE EXAMPLE
+
+   User selects:
+
+   Year: 2025
+   Crime: All Crimes
+   Barangay: Gugo
+
+                 ↓
+
+   CrimeAnalytics receives those filters
+
+                 ↓
+
+   It calculates the appropriate values
+
+                 ↓
+
+   It determines whether those values are:
+
+   REPORTED
+
+   or
+
+   ESTIMATED
+
+                 ↓
+
+   It displays the results using charts.
+
+
+   IMPORTANT
+
+   The charts are descriptive.
+
+   They show patterns in the available crime statistics.
+
+   They do NOT automatically prove:
+
+   - Why crime increased
+   - Why crime decreased
+   - That one barangay is dangerous
+   - That one barangay is safe
+   - That crime will increase in the future
+   - That a person has a certain chance of becoming
+     a victim
+========================================================= */
+
+/* =========================================================
+   DATA SOURCES
+   =========================================================
+
+   crimes.json
+
+   Contains directly reported information such as:
+
+   - Municipality yearly totals
+   - Crime totals
+   - Crime × Year totals
+   - Crime × Barangay totals
+
+
+   crime-year-barangay.json
+
+   Contains the ESTIMATED allocation used when the exact
+   Year × Barangay or Crime × Year × Barangay combination
+   is not directly available in the source data.
+
+
+   crimeColors.ts
+
+   Provides the display color assigned to each crime type.
+
+   The colors help distinguish crime categories.
+
+   They do NOT represent seriousness or legal severity.
+========================================================= */
+
+/* =========================================================
+   COMPONENT INPUTS
+   =========================================================
+
+   CrimeAnalytics receives the filters currently selected
+   on the Bantay Samal dashboard.
+
+   selectedYear
+   → "all", "2024", "2025", or "2026"
+
+   selectedCrimeId
+   → "all" or the ID of a specific crime
+
+   selectedBarangayId
+   → "all" or the ID of a specific barangay
+========================================================= */
 
 type CrimeAnalyticsProps = {
   selectedYear: string;
+
   selectedCrimeId: string;
+
   selectedBarangayId: string;
 };
+
+/* =========================================================
+   ESTIMATED ALLOCATION TYPES
+   =========================================================
+
+   These types describe the structure of:
+
+   crime-year-barangay.json
+
+
+   BarangayCounts
+
+   Example:
+
+   {
+     gugo: 3,
+     ibaba: 2,
+     sapa: 1
+   }
+
+
+   YearAllocations
+
+   Example:
+
+   {
+     "2024": {...},
+     "2025": {...},
+     "2026": {...}
+   }
+
+
+   CrimeAllocations
+
+   Example:
+
+   {
+     "malicious-mischief": {
+       "2024": {...},
+       "2025": {...},
+       "2026": {...}
+     }
+   }
+========================================================= */
 
 type BarangayCounts = Record<string, number>;
 
@@ -32,74 +191,128 @@ type YearAllocations = Record<string, BarangayCounts>;
 
 type CrimeAllocations = Record<string, YearAllocations>;
 
+/*
+   Tell TypeScript how the estimated allocation data
+   is structured.
+*/
+
 const allocations = estimatedData.allocations as CrimeAllocations;
 
-/* =========================================
-   BARANGAYS
-========================================= */
+/* =========================================================
+   BARANGAY LIST
+   =========================================================
+
+   The dashboard normally works using IDs.
+
+   Example:
+
+   "east-calaguiman"
+
+   But the user should see:
+
+   "East Calaguiman"
+
+
+   This list allows the program to convert internal
+   barangay IDs into readable names.
+========================================================= */
 
 const barangays = [
   {
     id: "east-calaguiman",
     name: "East Calaguiman",
   },
+
   {
     id: "east-daang-bago",
     name: "East Daang Bago",
   },
+
   {
     id: "gugo",
     name: "Gugo",
   },
+
   {
     id: "ibaba",
     name: "Ibaba",
   },
+
   {
     id: "imelda",
     name: "Imelda",
   },
+
   {
     id: "lalawigan",
     name: "Lalawigan",
   },
+
   {
     id: "palili",
     name: "Palili",
   },
+
   {
     id: "san-juan",
     name: "San Juan",
   },
+
   {
     id: "santa-lucia",
     name: "Santa Lucia",
   },
+
   {
     id: "sapa",
     name: "Sapa",
   },
+
   {
     id: "tabing-ilog",
     name: "Tabing Ilog",
   },
+
   {
     id: "west-calaguiman",
     name: "West Calaguiman",
   },
+
   {
     id: "west-daang-bago",
     name: "West Daang Bago",
   },
+
   {
     id: "san-roque",
     name: "San Roque",
   },
 ];
 
-/* =========================================
+/* =========================================================
    DATA STATUS CHIP
-========================================= */
+   =========================================================
+
+   This small label tells the user whether the information
+   displayed in a chart is:
+
+   REPORTED
+
+   or
+
+   ESTIMATED
+
+
+   Green/teal:
+   → Reported
+
+   Brown/orange:
+   → Estimated
+
+
+   This is important because estimated values should not
+   be presented as if they were directly reported counts.
+========================================================= */
 
 function DataStatusChip({ estimated }: { estimated: boolean }) {
   return (
@@ -142,9 +355,24 @@ function DataStatusChip({ estimated }: { estimated: boolean }) {
   );
 }
 
-/* =========================================
-   EMPTY STATE
-========================================= */
+/* =========================================================
+   EMPTY CHART STATE
+   =========================================================
+
+   Sometimes a selected filter combination has no cases.
+
+   Example:
+
+   A crime category may have zero cases for a particular
+   barangay.
+
+   Instead of showing a confusing empty graph, this
+   component displays:
+
+   "No cases to display"
+
+   together with a short explanation.
+========================================================= */
 
 function EmptyChartState({ message }: { message: string }) {
   return (
@@ -158,8 +386,11 @@ function EmptyChartState({ message }: { message: string }) {
         },
 
         display: "flex",
+
         flexDirection: "column",
+
         alignItems: "center",
+
         justifyContent: "center",
 
         px: {
@@ -189,6 +420,7 @@ function EmptyChartState({ message }: { message: string }) {
           mb: 1.25,
 
           display: "grid",
+
           placeItems: "center",
 
           borderRadius: "50%",
@@ -205,6 +437,7 @@ function EmptyChartState({ message }: { message: string }) {
         variant="subtitle2"
         sx={{
           fontWeight: 800,
+
           color: "text.primary",
         }}
       >
@@ -228,18 +461,43 @@ function EmptyChartState({ message }: { message: string }) {
   );
 }
 
-/* =========================================
-   COMPONENT
-========================================= */
+/* =========================================================
+   MAIN CRIME ANALYTICS COMPONENT
+========================================================= */
 
 export default function CrimeAnalytics({
   selectedYear,
   selectedCrimeId,
   selectedBarangayId,
 }: CrimeAnalyticsProps) {
-  /* =========================================
-     SELECTED CRIME
-  ========================================= */
+  /* =======================================================
+     FIND THE SELECTED CRIME
+     =======================================================
+
+     If the user selects a specific crime, find that
+     crime inside crimes.json.
+
+     Example:
+
+     selectedCrimeId:
+     "malicious-mischief"
+
+                 ↓
+
+     Search crimes.json
+
+                 ↓
+
+     Malicious Mischief record
+
+
+     If the user selected "All Crimes", there is no
+     single crime record, so this returns null.
+
+
+     useMemo is used so React does not repeat this search
+     unless selectedCrimeId changes.
+  ======================================================= */
 
   const selectedCrime = useMemo(() => {
     if (selectedCrimeId === "all") {
@@ -251,15 +509,39 @@ export default function CrimeAnalytics({
     );
   }, [selectedCrimeId]);
 
-  /* =========================================
+  /* =======================================================
      ACTIVE CRIME COLOR
-  ========================================= */
+     =======================================================
+
+     Get the visual color assigned to the selected crime.
+
+     The Line Chart uses this color.
+
+     Again:
+
+     Color = visualization
+
+     Color ≠ crime severity
+  ======================================================= */
 
   const activeCrimeColor = getCrimeColor(selectedCrimeId);
 
-  /* =========================================
-     SELECTED BARANGAY
-  ========================================= */
+  /* =======================================================
+     FIND THE SELECTED BARANGAY
+     =======================================================
+
+     Example:
+
+     selectedBarangayId:
+     "gugo"
+
+               ↓
+
+     Find Gugo in the barangay list.
+
+     If "All Barangays" is selected, no individual
+     barangay is returned.
+  ======================================================= */
 
   const selectedBarangay = useMemo(() => {
     return (
@@ -267,9 +549,13 @@ export default function CrimeAnalytics({
     );
   }, [selectedBarangayId]);
 
-  /* =========================================
+  /* =======================================================
      DISPLAY LABELS
-  ========================================= */
+     =======================================================
+
+     These labels are shown above the charts so the user
+     can easily understand the current filters.
+  ======================================================= */
 
   const yearLabel = selectedYear === "all" ? "2024–2026" : selectedYear;
 
@@ -277,17 +563,118 @@ export default function CrimeAnalytics({
 
   const barangayLabel = selectedBarangay?.name ?? "All Barangays";
 
-  /* =========================================
+  /* =======================================================
      YEARLY TREND
-  ========================================= */
+     =======================================================
+
+     This creates the three values used by the Line Chart:
+
+     [
+       2024 value,
+       2025 value,
+       2026 value
+     ]
+
+
+     The source of those values depends on the filters.
+
+
+     -------------------------------------------------------
+     CASE 1
+
+     ALL BARANGAYS + ALL CRIMES
+
+     Example:
+
+     All Barangays
+     All Crimes
+
+     RESULT:
+
+     Use the reported municipality yearly totals.
+
+     2024 = 80
+     2025 = 108
+     2026 = 62
+
+
+     -------------------------------------------------------
+     CASE 2
+
+     ALL BARANGAYS + SPECIFIC CRIME
+
+     Example:
+
+     All Barangays
+     Malicious Mischief
+
+     RESULT:
+
+     Use the reported yearly totals for that crime.
+
+
+     -------------------------------------------------------
+     CASE 3
+
+     SPECIFIC BARANGAY + SPECIFIC CRIME
+
+     Example:
+
+     Gugo
+     Malicious Mischief
+
+     RESULT:
+
+     Use estimated:
+
+     Crime × Year × Barangay
+
+
+     -------------------------------------------------------
+     CASE 4
+
+     SPECIFIC BARANGAY + ALL CRIMES
+
+     Example:
+
+     Gugo
+     All Crimes
+
+     RESULT:
+
+     Add together the estimated yearly allocation of
+     every crime category for Gugo.
+
+
+     IMPORTANT:
+
+     A barangay-specific YEARLY trend is estimated because
+     the exact year-by-barangay cross-tabulation was not
+     directly reported in the source data.
+  ======================================================= */
 
   const yearlyTrend = useMemo(() => {
     const years = ["2024", "2025", "2026"];
 
+    /*
+         Calculate one value for each year.
+      */
+
     return years.map((year) => {
-      /* MUNICIPALITY */
+      /* ===============================================
+           MUNICIPALITY LEVEL
+
+           No specific barangay selected.
+        =============================================== */
 
       if (selectedBarangayId === "all") {
+        /*
+             ALL CRIMES
+
+             Use directly reported municipality
+             yearly totals.
+          */
+
         if (selectedCrimeId === "all") {
           return Number(
             crimesData.yearlyTotals[
@@ -295,6 +682,13 @@ export default function CrimeAnalytics({
             ],
           );
         }
+
+        /*
+             SPECIFIC CRIME
+
+             Use directly reported yearly totals
+             for that crime.
+          */
 
         if (selectedCrime) {
           return Number(
@@ -305,13 +699,24 @@ export default function CrimeAnalytics({
         return 0;
       }
 
-      /* SPECIFIC CRIME + BARANGAY */
+      /* ===============================================
+           SPECIFIC CRIME + SPECIFIC BARANGAY
+
+           Use estimated Crime × Year × Barangay data.
+        =============================================== */
 
       if (selectedCrimeId !== "all") {
         return allocations[selectedCrimeId]?.[year]?.[selectedBarangayId] ?? 0;
       }
 
-      /* ALL CRIMES + BARANGAY */
+      /* ===============================================
+           ALL CRIMES + SPECIFIC BARANGAY
+
+           Add the estimated value of every crime
+           category for this:
+
+           Year + Barangay
+        =============================================== */
 
       return Object.values(allocations).reduce((total, crimeAllocation) => {
         return total + (crimeAllocation[year]?.[selectedBarangayId] ?? 0);
@@ -319,85 +724,274 @@ export default function CrimeAnalytics({
     });
   }, [selectedBarangayId, selectedCrimeId, selectedCrime]);
 
-  /* =========================================
+  /* =======================================================
      CRIME BREAKDOWN
-  ========================================= */
+     =======================================================
+
+     Crime Breakdown answers:
+
+     "Which crime categories have the highest number of
+     cases under the current Year and Barangay filters?"
+
+
+     The calculation changes depending on the filters.
+
+
+     -------------------------------------------------------
+     ALL BARANGAYS + ALL YEARS
+
+     Use:
+
+     crime.total
+
+     REPORTED
+
+
+     -------------------------------------------------------
+     ALL BARANGAYS + SPECIFIC YEAR
+
+     Use:
+
+     crime.yearly[selectedYear]
+
+     REPORTED
+
+
+     -------------------------------------------------------
+     SPECIFIC BARANGAY + ALL YEARS
+
+     Use:
+
+     crime.barangays[selectedBarangayId]
+
+     REPORTED
+
+
+     -------------------------------------------------------
+     SPECIFIC BARANGAY + SPECIFIC YEAR
+
+     Use:
+
+     estimated allocation
+
+     ESTIMATED
+  ======================================================= */
 
   const crimeBreakdown = useMemo(() => {
     return crimesData.crimes.map((crime) => {
       let value = 0;
 
-      /* ALL BARANGAYS */
+      /* =============================================
+             ALL BARANGAYS
+          ============================================= */
 
       if (selectedBarangayId === "all") {
+        /*
+               ALL YEARS
+
+               Use complete reported crime total.
+            */
+
         if (selectedYear === "all") {
           value = crime.total;
         } else {
+
+        /*
+               SPECIFIC YEAR
+
+               Use reported Crime × Year value.
+            */
           value = crime.yearly[selectedYear as keyof typeof crime.yearly] ?? 0;
         }
       } else if (selectedYear === "all") {
-        /* SPECIFIC BARANGAY + ALL YEARS */
 
+      /* =============================================
+             SPECIFIC BARANGAY + ALL YEARS
+
+             Use reported Crime × Barangay total.
+          ============================================= */
         const crimeBarangays = crime.barangays as Record<string, number>;
 
         value = crimeBarangays[selectedBarangayId] ?? 0;
       } else {
-        /* BARANGAY + YEAR */
 
+      /* =============================================
+             SPECIFIC BARANGAY + SPECIFIC YEAR
+
+             The exact cross-tabulation is not directly
+             reported.
+
+             Use the estimated allocation.
+          ============================================= */
         value =
           allocations[crime.id]?.[selectedYear]?.[selectedBarangayId] ?? 0;
       }
 
       return {
         id: crime.id,
+
         name: crime.name,
+
         value,
       };
     });
   }, [selectedYear, selectedBarangayId]);
 
-  /* =========================================
+  /* =======================================================
      TOP CRIMES
+     =======================================================
 
-     Remove zero-value crimes before
-     displaying the chart.
-  ========================================= */
+     The Crime Breakdown chart does not need to display
+     all crime categories.
+
+     This section:
+
+     1. Copies the calculated crime breakdown.
+
+     2. Removes crime categories with zero cases.
+
+     3. Sorts the remaining categories from highest
+        count to lowest count.
+
+     4. Keeps only the top six.
+
+
+     IMPORTANT:
+
+     "Top Crimes" here means:
+
+     Highest NUMBER OF CASES.
+
+     It does NOT mean:
+
+     - Most dangerous crimes
+     - Most serious crimes
+     - Crimes with the strongest legal penalty
+  ======================================================= */
 
   const topCrimes = useMemo(() => {
     return [...crimeBreakdown]
       .filter((crime) => crime.value > 0)
+
       .sort((a, b) => b.value - a.value)
+
       .slice(0, 6);
   }, [crimeBreakdown]);
 
-  /* =========================================
+  /* =======================================================
      DATA STATUS
-  ========================================= */
+     =======================================================
+
+     These two variables tell the interface whether the
+     chart should display:
+
+     REPORTED
+
+     or
+
+     ESTIMATED.
+
+
+     -------------------------------------------------------
+     YEARLY TREND
+
+     If a specific barangay is selected, the yearly trend
+     uses estimated year-by-barangay allocations.
+
+     Therefore:
+
+     Specific Barangay
+           ↓
+     Estimated
+
+
+     -------------------------------------------------------
+     CRIME BREAKDOWN
+
+     Crime Breakdown only becomes estimated when BOTH:
+
+     1. A specific barangay is selected
+
+     AND
+
+     2. A specific year is selected.
+
+
+     Example:
+
+     Gugo + All Years
+     → Reported Crime × Barangay
+
+
+     Gugo + 2025
+     → Estimated Crime × Year × Barangay
+  ======================================================= */
 
   const yearlyTrendEstimated = selectedBarangayId !== "all";
 
   const breakdownEstimated =
     selectedBarangayId !== "all" && selectedYear !== "all";
 
-  /* =========================================
-     EMPTY STATE CHECKS
-  ========================================= */
+  /* =======================================================
+     CHECK IF THE CHARTS HAVE DATA
+     =======================================================
+
+     If every value is zero, there is no useful chart
+     to display.
+
+     In that situation, the EmptyChartState component
+     appears instead.
+  ======================================================= */
 
   const yearlyTrendHasData = yearlyTrend.some((value) => value > 0);
 
   const crimeBreakdownHasData = topCrimes.some((crime) => crime.value > 0);
 
-  /* =========================================
-     CONTEXT
-  ========================================= */
+  /* =======================================================
+     FILTER CONTEXT LABEL
+     =======================================================
+
+     This creates the small description shown above
+     the analytics.
+
+     Example:
+
+     2025 • Malicious Mischief • Gugo
+  ======================================================= */
 
   const contextLabel = useMemo(() => {
     return [yearLabel, crimeLabel, barangayLabel].join(" • ");
   }, [yearLabel, crimeLabel, barangayLabel]);
 
-  /* =========================================
-     YEARLY TREND TEXT
-  ========================================= */
+  /* =======================================================
+     YEARLY TREND TITLE
+     =======================================================
+
+     The chart title changes automatically according to
+     the selected filters.
+
+
+     EXAMPLES:
+
+     All Crimes + All Barangays
+
+     → Municipality Yearly Trend
+
+
+     Malicious Mischief + All Barangays
+
+     → Malicious Mischief Yearly Trend
+
+
+     All Crimes + Gugo
+
+     → Crime Trend — Gugo
+
+
+     Malicious Mischief + Gugo
+
+     → Malicious Mischief Trend — Gugo
+  ======================================================= */
 
   const yearlyTrendTitle = useMemo(() => {
     if (selectedBarangay) {
@@ -415,15 +1009,24 @@ export default function CrimeAnalytics({
     return "Municipality Yearly Trend";
   }, [selectedBarangay, selectedCrime]);
 
+  /* =======================================================
+     YEARLY TREND DESCRIPTION
+     =======================================================
+
+     The description also tells the user whether the chart
+     is showing reported municipality information or an
+     estimated barangay trend.
+  ======================================================= */
+
   const yearlyTrendSubtitle = selectedBarangay
     ? `Estimated yearly cases in ${selectedBarangay.name} from 2024 to 2026`
     : selectedCrime
       ? `Reported ${selectedCrime.name.toLowerCase()} cases from 2024 to 2026`
       : "Reported crime cases from 2024 to 2026";
 
-  /* =========================================
-     CRIME BREAKDOWN TEXT
-  ========================================= */
+  /* =======================================================
+     CRIME BREAKDOWN TITLE
+     ======================================================= */
 
   const crimeBreakdownTitle = useMemo(() => {
     if (selectedBarangay) {
@@ -437,6 +1040,15 @@ export default function CrimeAnalytics({
     return "Crime Breakdown";
   }, [selectedBarangay, selectedYear]);
 
+  /* =======================================================
+     CRIME BREAKDOWN DESCRIPTION
+     =======================================================
+
+     The description changes according to the filters
+     and tells the user whether the values are reported
+     or estimated.
+  ======================================================= */
+
   const crimeBreakdownSubtitle = selectedBarangay
     ? selectedYear === "all"
       ? `Highest reported crime categories in ${selectedBarangay.name}`
@@ -445,9 +1057,21 @@ export default function CrimeAnalytics({
       ? "Highest reported crime categories across Samal"
       : `Highest reported crime categories across Samal in ${selectedYear}`;
 
-  /* =========================================
-     RETURN
-  ========================================= */
+  /* =======================================================
+     USER INTERFACE
+     =======================================================
+
+     Everything below displays the calculated data.
+
+     The analytics section contains:
+
+     1. Analytics heading
+     2. Current filter context
+     3. Yearly Trend chart
+     4. Crime Breakdown chart
+     5. Reported / Estimated labels
+     6. Empty-state messages
+  ======================================================= */
 
   return (
     <Box
@@ -455,9 +1079,9 @@ export default function CrimeAnalytics({
         minWidth: 0,
       }}
     >
-      {/* =================================
-          SECTION HEADER
-      ================================= */}
+      {/* =================================================
+          ANALYTICS SECTION HEADER
+      ================================================= */}
 
       <Box
         sx={{
@@ -503,6 +1127,8 @@ export default function CrimeAnalytics({
           Crime Analytics
         </Typography>
 
+        {/* Current filters */}
+
         <Typography
           variant="body2"
           color="text.secondary"
@@ -523,9 +1149,15 @@ export default function CrimeAnalytics({
         </Typography>
       </Box>
 
-      {/* =================================
-          ANALYTICS CARDS
-      ================================= */}
+      {/* =================================================
+          ANALYTICS CARD LAYOUT
+
+          Mobile:
+          Charts appear one after another.
+
+          Large desktop:
+          Two charts appear side-by-side.
+      ================================================= */}
 
       <Box
         sx={{
@@ -533,6 +1165,7 @@ export default function CrimeAnalytics({
 
           gridTemplateColumns: {
             xs: "minmax(0, 1fr)",
+
             lg: "repeat(2, minmax(0, 1fr))",
           },
 
@@ -544,9 +1177,9 @@ export default function CrimeAnalytics({
           minWidth: 0,
         }}
       >
-        {/* =================================
-            YEARLY TREND
-        ================================= */}
+        {/* =================================================
+            YEARLY TREND CARD
+        ================================================= */}
 
         <Paper
           variant="outlined"
@@ -563,6 +1196,10 @@ export default function CrimeAnalytics({
             overflow: "hidden",
           }}
         >
+          {/* =============================================
+              YEARLY TREND HEADER
+          ============================================= */}
+
           <Stack
             direction={{
               xs: "column",
@@ -586,6 +1223,7 @@ export default function CrimeAnalytics({
               spacing={1}
               sx={{
                 minWidth: 0,
+
                 flex: 1,
 
                 alignItems: "flex-start",
@@ -608,6 +1246,7 @@ export default function CrimeAnalytics({
               <Box
                 sx={{
                   minWidth: 0,
+
                   flex: 1,
                 }}
               >
@@ -647,6 +1286,8 @@ export default function CrimeAnalytics({
               </Box>
             </Stack>
 
+            {/* Reported / Estimated indicator */}
+
             <Box
               sx={{
                 flexShrink: 0,
@@ -669,6 +1310,27 @@ export default function CrimeAnalytics({
               },
             }}
           />
+
+          {/* =============================================
+              YEARLY TREND LINE CHART
+
+              X-axis:
+              2024, 2025, 2026
+
+              Y-axis:
+              Number of cases
+
+              The line allows the user to visually compare
+              whether the case count increased or decreased
+              across the three reporting years.
+
+              IMPORTANT:
+
+              The chart describes past recorded/estimated
+              values.
+
+              It does NOT predict future crime.
+          ============================================= */}
 
           {yearlyTrendHasData ? (
             <>
@@ -718,6 +1380,8 @@ export default function CrimeAnalytics({
                 />
               </Box>
 
+              {/* Explain chart data source */}
+
               <Typography
                 variant="caption"
                 sx={{
@@ -744,9 +1408,12 @@ export default function CrimeAnalytics({
           )}
         </Paper>
 
-        {/* =================================
-            CRIME BREAKDOWN
-        ================================= */}
+        {/* =================================================
+            CRIME BREAKDOWN CARD
+
+            This chart compares crime categories under the
+            current Year and Barangay filters.
+        ================================================= */}
 
         <Paper
           variant="outlined"
@@ -763,6 +1430,10 @@ export default function CrimeAnalytics({
             overflow: "hidden",
           }}
         >
+          {/* =============================================
+              CRIME BREAKDOWN HEADER
+          ============================================= */}
+
           <Stack
             direction={{
               xs: "column",
@@ -786,6 +1457,7 @@ export default function CrimeAnalytics({
               spacing={1}
               sx={{
                 minWidth: 0,
+
                 flex: 1,
 
                 alignItems: "flex-start",
@@ -808,6 +1480,7 @@ export default function CrimeAnalytics({
               <Box
                 sx={{
                   minWidth: 0,
+
                   flex: 1,
                 }}
               >
@@ -845,6 +1518,8 @@ export default function CrimeAnalytics({
               </Box>
             </Stack>
 
+            {/* Reported / Estimated indicator */}
+
             <Box
               sx={{
                 flexShrink: 0,
@@ -870,9 +1545,29 @@ export default function CrimeAnalytics({
 
           {crimeBreakdownHasData ? (
             <>
-              {/* =================================
+              {/* ===========================================
                   MOBILE CRIME RANKING
-              ================================= */}
+
+                  On small mobile screens, a full bar chart
+                  may be difficult to read.
+
+                  Therefore the component uses a simpler
+                  ranked list.
+
+                  Example:
+
+                  1. Malicious Mischief       10
+                  2. Alarm and Scandal         5
+                  3. Physical Injuries         5
+
+
+                  IMPORTANT:
+
+                  Rank #1 means highest number of cases.
+
+                  It does NOT mean most dangerous or most
+                  serious crime.
+              =========================================== */}
 
               <Stack
                 spacing={1}
@@ -884,11 +1579,48 @@ export default function CrimeAnalytics({
                 }}
               >
                 {topCrimes.map((crime, index) => {
+                  /*
+                       Get this crime's assigned visual
+                       color.
+                    */
+
                   const color = getCrimeColor(crime.id);
+
+                  /*
+                       The highest crime is the reference
+                       for the comparison bar.
+                    */
 
                   const maxValue = topCrimes[0]?.value || 1;
 
-                  const width = Math.max(5, (crime.value / maxValue) * 100);
+                  /*
+                       Calculate the relative width of
+                       the bar.
+
+                       Example:
+
+                       Highest crime = 10
+                       Current crime = 5
+
+                       5 / 10 × 100 = 50%
+
+
+                       Minimum width is 5% so very small
+                       values remain visible.
+
+
+                       IMPORTANT:
+
+                       This is NOT a crime-risk percentage.
+
+                       It only compares case counts.
+                    */
+
+                  const width = Math.max(
+                    5,
+
+                    (crime.value / maxValue) * 100,
+                  );
 
                   return (
                     <Box
@@ -912,6 +1644,8 @@ export default function CrimeAnalytics({
                           alignItems: "flex-start",
                         }}
                       >
+                        {/* Crime ranking number */}
+
                         <Typography
                           variant="caption"
                           sx={{
@@ -954,6 +1688,8 @@ export default function CrimeAnalytics({
                                 alignItems: "flex-start",
                               }}
                             >
+                              {/* Crime color */}
+
                               <Box
                                 sx={{
                                   width: 8,
@@ -969,6 +1705,8 @@ export default function CrimeAnalytics({
                                   bgcolor: color,
                                 }}
                               />
+
+                              {/* Crime name */}
 
                               <Typography
                                 variant="caption"
@@ -988,6 +1726,8 @@ export default function CrimeAnalytics({
                               </Typography>
                             </Stack>
 
+                            {/* Number of cases */}
+
                             <Typography
                               variant="caption"
                               sx={{
@@ -1001,6 +1741,8 @@ export default function CrimeAnalytics({
                               {crime.value}
                             </Typography>
                           </Stack>
+
+                          {/* Relative comparison bar */}
 
                           <Box
                             sx={{
@@ -1034,9 +1776,22 @@ export default function CrimeAnalytics({
                 })}
               </Stack>
 
-              {/* =================================
-                  TABLET / DESKTOP CHART
-              ================================= */}
+              {/* ===========================================
+                  TABLET / DESKTOP CRIME BREAKDOWN
+
+                  On larger screens, use a horizontal
+                  bar chart.
+
+                  Y-axis:
+                  Crime categories
+
+                  X-axis:
+                  Number of cases
+
+
+                  Only the six crime categories with the
+                  highest counts are displayed.
+              =========================================== */}
 
               <Box
                 sx={{
@@ -1072,6 +1827,14 @@ export default function CrimeAnalytics({
                   series={topCrimes.map((crime, crimeIndex) => ({
                     label: crime.name,
 
+                    /*
+                         Each crime receives its own
+                         colored series.
+
+                         Only the matching row receives
+                         the crime's value.
+                      */
+
                     data: topCrimes.map((_, index) =>
                       index === crimeIndex ? crime.value : null,
                     ),
@@ -1091,6 +1854,10 @@ export default function CrimeAnalytics({
                   hideLegend
                 />
               </Box>
+
+              {/* ===========================================
+                  CRIME BREAKDOWN DATA SOURCE
+              =========================================== */}
 
               <Typography
                 variant="caption"
@@ -1121,3 +1888,465 @@ export default function CrimeAnalytics({
     </Box>
   );
 }
+
+/* =========================================================
+   SIMPLE EXPLANATION FOR CRIMINOLOGY STUDENTS
+   =========================================================
+
+
+   WHAT IS CRIME ANALYTICS?
+
+
+   CrimeAnalytics is the part of Bantay Samal that turns
+   crime statistics into charts.
+
+
+   Instead of only reading numbers such as:
+
+   2024 = 80
+   2025 = 108
+   2026 = 62
+
+
+   the student can see those numbers visually using a
+   line chart.
+
+
+   =========================================================
+   CHART 1 — YEARLY TREND
+   =========================================================
+
+
+   The Yearly Trend compares crime cases across:
+
+   2024
+     ↓
+   2025
+     ↓
+   2026
+
+
+   Example:
+
+   2024 = 80
+   2025 = 108
+   2026 = 62
+
+
+   The line will:
+
+   Rise from 2024 to 2025
+
+   and then
+
+   Fall from 2025 to 2026.
+
+
+   This allows the researcher to describe the pattern as:
+
+   "Recorded cases increased from 2024 to 2025 and
+   decreased in 2026."
+
+
+   But the chart alone cannot explain WHY the change
+   happened.
+
+
+   =========================================================
+   REPORTED YEARLY TREND
+   =========================================================
+
+
+   ALL BARANGAYS
+   + ALL CRIMES
+
+          ↓
+
+   Reported municipality yearly totals
+
+
+   ---------------------------------------------------------
+
+
+   ALL BARANGAYS
+   + SPECIFIC CRIME
+
+          ↓
+
+   Reported Crime × Year totals
+
+
+   =========================================================
+   ESTIMATED YEARLY TREND
+   =========================================================
+
+
+   Once a SPECIFIC BARANGAY is selected:
+
+          ↓
+
+   The system needs Year × Barangay information
+
+          ↓
+
+   The exact cross-tabulation was not directly reported
+
+          ↓
+
+   Bantay Samal uses the estimated allocation
+
+          ↓
+
+   The chart is marked:
+
+   ESTIMATED
+
+
+   =========================================================
+   CHART 2 — CRIME BREAKDOWN
+   =========================================================
+
+
+   Crime Breakdown answers:
+
+   "Which crime categories have the highest number of
+   cases?"
+
+
+   Example:
+
+   Malicious Mischief       37
+   Alarm and Scandal        38
+   Physical Injuries        30
+
+
+   The component sorts these values from highest to
+   lowest and displays up to six categories.
+
+
+   =========================================================
+   WHEN IS CRIME BREAKDOWN REPORTED?
+   =========================================================
+
+
+   ALL BARANGAYS
+   + ALL YEARS
+
+          ↓
+
+   Reported Crime totals
+
+
+   ---------------------------------------------------------
+
+
+   ALL BARANGAYS
+   + SPECIFIC YEAR
+
+          ↓
+
+   Reported Crime × Year totals
+
+
+   ---------------------------------------------------------
+
+
+   SPECIFIC BARANGAY
+   + ALL YEARS
+
+          ↓
+
+   Reported Crime × Barangay totals
+
+
+   =========================================================
+   WHEN IS CRIME BREAKDOWN ESTIMATED?
+   =========================================================
+
+
+   SPECIFIC BARANGAY
+   + SPECIFIC YEAR
+
+          ↓
+
+   Crime × Year × Barangay is needed
+
+          ↓
+
+   Exact cross-tabulation was not directly reported
+
+          ↓
+
+   Estimated allocation is used
+
+
+   =========================================================
+   EXAMPLE
+   =========================================================
+
+
+   Suppose the user selects:
+
+   Barangay:
+   Gugo
+
+   Year:
+   2025
+
+   Crime:
+   All Crimes
+
+
+   YEARLY TREND
+   ------------
+
+   Because a specific barangay is selected, the yearly
+   trend uses estimated year-by-barangay values.
+
+
+   CRIME BREAKDOWN
+   ---------------
+
+   Because BOTH a specific barangay and a specific year
+   are selected, the crime breakdown uses estimated
+   Crime × Year × Barangay values.
+
+
+   Therefore both charts should be clearly marked:
+
+   ESTIMATED
+
+
+   =========================================================
+   WHAT DOES "TOP CRIMES" MEAN?
+   =========================================================
+
+
+   Suppose the chart shows:
+
+   #1 Alarm and Scandal          20
+   #2 Malicious Mischief         13
+   #3 Resistance                 10
+
+
+   This only means that Alarm and Scandal has the highest
+   number of cases under the selected filters.
+
+
+   It does NOT mean:
+
+   Alarm and Scandal is the most dangerous crime.
+
+   It does NOT mean:
+
+   It is legally the most serious offense.
+
+   It does NOT mean:
+
+   It carries the highest criminal penalty.
+
+
+   =========================================================
+   WHAT DO THE MOBILE BARS MEAN?
+   =========================================================
+
+
+   Suppose:
+
+   Highest crime = 20 cases
+
+   Another crime = 10 cases
+
+
+   The highest crime receives:
+
+   100% bar width
+
+
+   The other crime receives:
+
+   50% bar width
+
+
+   This means:
+
+   10 is half of 20.
+
+
+   It does NOT mean:
+
+   "There is a 50% chance of this crime happening."
+
+
+   =========================================================
+   REPORTED VS ESTIMATED
+   =========================================================
+
+
+   REPORTED
+   --------
+
+   The value comes directly from one of the available
+   source totals used by Bantay Samal.
+
+
+   ESTIMATED
+   ---------
+
+   The exact combination needed by the dashboard was not
+   directly available in the source cross-tabulations.
+
+   Therefore, an allocation was calculated while
+   preserving the known totals.
+
+
+   Estimated values should always remain clearly labeled
+   as estimated.
+
+
+   =========================================================
+   HOW A CRIMINOLOGY STUDENT CAN INTERPRET THE CHARTS
+   =========================================================
+
+
+   GOOD INTERPRETATION:
+
+   "The recorded number of cases increased from 2024 to
+   2025 and decreased in 2026."
+
+
+   GOOD INTERPRETATION:
+
+   "Alarm and Scandal had the highest recorded case count
+   among the displayed crime categories."
+
+
+   GOOD INTERPRETATION:
+
+   "The barangay-level yearly values are estimated because
+   the source data did not directly provide the complete
+   year-by-barangay cross-tabulation."
+
+
+   AVOID:
+
+   "Crime increased because police were ineffective."
+
+
+   Why?
+
+   The chart does not contain evidence proving that cause.
+
+
+   AVOID:
+
+   "This barangay is dangerous."
+
+
+   Why?
+
+   Case counts alone are not enough to establish overall
+   danger or victimization risk.
+
+
+   AVOID:
+
+   "Crime will decrease next year."
+
+
+   Why?
+
+   The chart describes 2024–2026 data.
+
+   It is not a forecasting model.
+
+
+   =========================================================
+   SIMPLE PROGRAM FLOW
+   =========================================================
+
+
+   DASHBOARD FILTERS
+
+   Year
+   Crime
+   Barangay
+
+          ↓
+
+   CrimeAnalytics receives the selected filters
+
+          ↓
+
+   Find the selected crime and barangay
+
+          ↓
+
+   Calculate YEARLY TREND
+
+          ↓
+
+   Determine:
+
+   Reported or Estimated?
+
+          ↓
+
+   Calculate CRIME BREAKDOWN
+
+          ↓
+
+   Determine:
+
+   Reported or Estimated?
+
+          ↓
+
+   Remove crimes with zero cases
+
+          ↓
+
+   Sort crimes from highest to lowest
+
+          ↓
+
+   Keep the top six
+
+          ↓
+
+   Display the charts
+
+
+   =========================================================
+   FINAL SIMPLE EXPLANATION
+   =========================================================
+
+
+   CrimeAnalytics is the data-analysis section of
+   Bantay Samal.
+
+   It helps criminology students and researchers see:
+
+   - How crime counts changed from 2024 to 2026
+
+   - Which crime categories have the highest counts
+
+   - Whether the displayed statistics are reported or
+     estimated
+
+   - How the results change when Year, Crime, and Barangay
+     filters are changed
+
+
+   The charts make crime statistics easier to compare and
+   understand.
+
+   However, they should be interpreted as descriptive
+   statistics only.
+
+   They describe the available crime data.
+
+   They do not automatically explain the causes of crime,
+   measure the overall safety of a barangay, or predict
+   future criminal activity.
+========================================================= */
