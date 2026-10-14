@@ -1,7 +1,6 @@
+
 import { useEffect, useMemo, useRef } from "react";
-
 import { Box } from "@mui/material";
-
 import {
   GeoJSON,
   LayersControl,
@@ -11,9 +10,7 @@ import {
   Tooltip,
   useMap,
 } from "react-leaflet";
-
 import L from "leaflet";
-
 import type { Feature, FeatureCollection, Geometry } from "geojson";
 
 import "leaflet/dist/leaflet.css";
@@ -21,92 +18,27 @@ import "leaflet/dist/leaflet.css";
 import samalBarangaysRaw from "../../data/samal-barangays.json";
 import crimesData from "../../data/crimes.json";
 import estimatedData from "../../data/crime-year-barangay.json";
-
 import { getCrimeColor } from "../../utils/crimeColors";
 
-/* =========================================================
-   BANTAY SAMAL - INTERACTIVE CRIME MAP
-   =========================================================
+/*
+=========================================================
+BANTAY SAMAL — INTERACTIVE CRIME MAP
+=========================================================
 
-   PURPOSE
+This component:
+1. Displays barangay boundaries.
+2. Shows recorded and estimated crime counts.
+3. Supports crime, year, and barangay filters.
+4. Uses high-contrast polygon colors.
+5. Displays barangay reference pins.
+6. Supports satellite and street map layers.
 
-   This component displays crime statistics geographically
-   across the barangays of Samal, Bataan.
-
-   The map combines:
-
-   1. Barangay boundaries
-   2. Crime statistics
-   3. Crime filters
-   4. Year filters
-   5. Barangay filters
-   6. Crime colors
-   7. Crime reference markers
-   8. Information tooltips
-
-
-   =========================================================
-   IMPORTANT: NO FIXED CRIME-COUNT THRESHOLDS
-   =========================================================
-
-   The map does NOT divide crime counts into fixed ranges
-   such as:
-
-   Low = 1–3 cases
-   Moderate = 4–5 cases
-   High = 6–8 cases
-   Highest = 9–10 cases
-
-   It also does NOT display crime percentages.
-
-   Instead, the ACTUAL NUMBER OF CASES is used.
-
-   Example:
-
-   Gugo             = 10 cases
-   Lalawigan         = 5 cases
-   Palili            = 3 cases
-   East Calaguiman   = 2 cases
-
-   The map still displays:
-
-   10 cases
-   5 cases
-   3 cases
-   2 cases
-
-   The barangay with the highest displayed count receives
-   the strongest color.
-
-   Lower positive counts receive progressively lighter
-   versions of the same color.
-
-   Low / Moderate / High / Highest are used only as
-   descriptive visual labels in the tooltip.
-
-   They do NOT replace the actual number of cases.
-
-   IMPORTANT:
-
-   The internal comparison with the maximum count is used
-   ONLY for visual comparison.
-
-   It does NOT represent:
-
-   - Crime probability
-   - Crime rate
-   - Safety level
-   - Danger level
-   - Victimization probability
-   - Official hotspot classification
-
-   A darker barangay simply has more displayed cases
-   relative to other barangays under the current filters.
-========================================================= */
-
-/* =========================================================
-   TYPES
-========================================================= */
+IMPORTANT:
+- Polygon colors represent relative case counts.
+- Pins are barangay references, not incident locations.
+- Year-specific barangay allocations are labeled estimated.
+=========================================================
+*/
 
 type BarangayProperties = {
   id: string;
@@ -117,13 +49,15 @@ type BarangayProperties = {
 
 type BarangayFeature = Feature<Geometry, BarangayProperties>;
 
-type BarangayCollection = FeatureCollection<Geometry, BarangayProperties>;
+type BarangayCollection = FeatureCollection<
+  Geometry,
+  BarangayProperties
+>;
 
 type SamalMapProps = {
   selectedBarangayId: string;
   selectedCrimeId: string;
   selectedYear: string;
-
   onBarangayChange: (barangayId: string) => void;
 };
 
@@ -139,17 +73,26 @@ type CrimeMarker = {
   position: L.LatLng;
 };
 
-/* =========================================================
-   PREPARE DATA
-========================================================= */
+const samalBarangays =
+  samalBarangaysRaw as BarangayCollection;
 
-const samalBarangays = samalBarangaysRaw as BarangayCollection;
+const allocations =
+  estimatedData.allocations as CrimeAllocations;
 
-const allocations = estimatedData.allocations as CrimeAllocations;
+/*
+=========================================================
+1. MAP BOUNDS CONTROLLER
+=========================================================
 
-/* =========================================================
-   AUTOMATIC MAP POSITION
-========================================================= */
+Automatically adjusts the map view.
+
+"all":
+  Fits the complete municipality.
+
+Specific barangay:
+  Zooms to that barangay's geographic boundary.
+=========================================================
+*/
 
 function MapBoundsController({
   selectedBarangayId,
@@ -159,13 +102,9 @@ function MapBoundsController({
   const map = useMap();
 
   useEffect(() => {
-    /* -------------------------------------------------------
-       ALL BARANGAYS
-    ------------------------------------------------------- */
-
     if (selectedBarangayId === "all") {
       const municipalityLayer = L.geoJSON(
-        samalBarangays as GeoJSON.GeoJsonObject,
+        samalBarangays as GeoJSON.GeoJsonObject
       );
 
       const bounds = municipalityLayer.getBounds();
@@ -179,19 +118,16 @@ function MapBoundsController({
       return;
     }
 
-    /* -------------------------------------------------------
-       ONE BARANGAY
-    ------------------------------------------------------- */
-
     const selectedFeature = samalBarangays.features.find(
-      (feature) => feature.properties.id === selectedBarangayId,
+      (feature) =>
+        feature.properties.id === selectedBarangayId
     );
 
-    if (!selectedFeature) {
-      return;
-    }
+    if (!selectedFeature) return;
 
-    const selectedLayer = L.geoJSON(selectedFeature as GeoJSON.GeoJsonObject);
+    const selectedLayer = L.geoJSON(
+      selectedFeature as GeoJSON.GeoJsonObject
+    );
 
     const bounds = selectedLayer.getBounds();
 
@@ -206,30 +142,29 @@ function MapBoundsController({
   return null;
 }
 
-/* =========================================================
-   CRIME REFERENCE PINS
-   =========================================================
+/*
+=========================================================
+2. CRIME REFERENCE PINS
+=========================================================
 
-   Pins appear only when ONE specific crime is selected.
+Pins are displayed only when:
+- A specific crime is selected.
+- The barangay has at least one displayed case.
 
-   IMPORTANT:
+The marker position is the center of the
+barangay's bounding rectangle.
 
-   The pin is a barangay reference marker.
-
-   It is NOT the exact incident location.
-========================================================= */
+It is NOT an exact crime incident location.
+=========================================================
+*/
 
 type BarangayCrimePinsProps = {
   selectedCrimeId: string;
   selectedBarangayId: string;
-
   barangayCounts: BarangayCounts;
-
   crimeLabel: string;
   periodLabel: string;
-
   isEstimated: boolean;
-
   onBarangayChange: (barangayId: string) => void;
 };
 
@@ -242,22 +177,18 @@ function BarangayCrimePins({
   isEstimated,
   onBarangayChange,
 }: BarangayCrimePinsProps) {
-  /* =======================================================
-     CREATE BARANGAY REFERENCE LOCATIONS
-  ======================================================= */
-
   const markers = useMemo<CrimeMarker[]>(() => {
     const result: CrimeMarker[] = [];
 
     samalBarangays.features.forEach((feature) => {
       try {
-        const layer = L.geoJSON(feature as GeoJSON.GeoJsonObject);
+        const layer = L.geoJSON(
+          feature as GeoJSON.GeoJsonObject
+        );
 
         const bounds = layer.getBounds();
 
-        if (!bounds.isValid()) {
-          return;
-        }
+        if (!bounds.isValid()) return;
 
         result.push({
           id: feature.properties.id,
@@ -265,94 +196,69 @@ function BarangayCrimePins({
           position: bounds.getCenter(),
         });
       } catch {
-        /*
-              Ignore malformed geographic information
-              instead of crashing the entire map.
-            */
+        // Ignore malformed geographic features.
       }
     });
 
     return result;
   }, []);
 
-  /* =======================================================
-     NO PINS FOR ALL CRIMES
-  ======================================================= */
+  const crimeColor = getCrimeColor(selectedCrimeId);
 
   if (selectedCrimeId === "all") {
     return null;
   }
 
-  /* =======================================================
-     SELECTED CRIME COLOR
-  ======================================================= */
-
-  const crimeColor = getCrimeColor(selectedCrimeId);
-
-  /* =======================================================
-     SHOW PINS ONLY WHERE CASES EXIST
-  ======================================================= */
-
-  const visibleMarkers = markers.filter((marker) => {
-    const count = Number(barangayCounts[marker.id] ?? 0);
-
-    return count > 0;
-  });
+  const visibleMarkers = markers.filter(
+    (marker) =>
+      Number(barangayCounts[marker.id] ?? 0) > 0
+  );
 
   return (
     <>
       {visibleMarkers.map((marker, index) => {
-        const count = Number(barangayCounts[marker.id] ?? 0);
+        const count = Number(
+          barangayCounts[marker.id] ?? 0
+        );
 
-        const isSelected = marker.id === selectedBarangayId;
+        const isSelected =
+          marker.id === selectedBarangayId;
 
-        /* ===============================================
-             CREATE MAP PIN
-          =============================================== */
+        /*
+        Create a custom animated Leaflet pin.
+        Selected pins receive a yellow outline.
+        */
 
         const markerIcon = L.divIcon({
           className: "samal-crime-marker",
-
           html: `
-                <div
-                  class="samal-crime-pin-wrapper"
-                  style="
-                    animation-delay:
-                    ${index * 55}ms;
-                  "
-                >
-                  <div
-                    class="samal-crime-pin"
-                    style="
-                      background-color:
-                      ${crimeColor};
+            <div
+              class="samal-crime-pin-wrapper"
+              style="animation-delay:${index * 55}ms"
+            >
+              <div
+                class="samal-crime-pin"
+                style="
+                  background-color:${crimeColor};
+                  ${
+                    isSelected
+                      ? `
+                        box-shadow:
+                          0 0 0 3px #FACC15,
+                          0 7px 16px rgba(0,0,0,0.35);
+                      `
+                      : ""
+                  }
+                "
+              >
+                <div class="samal-crime-pin-center"></div>
+              </div>
 
-                      ${
-                        isSelected
-                          ? `
-                            box-shadow:
-                              0 0 0 3px #FACC15,
-                              0 7px 16px rgba(0,0,0,0.35);
-                          `
-                          : ""
-                      }
-                    "
-                  >
-                    <div
-                      class="samal-crime-pin-center"
-                    ></div>
-                  </div>
-
-                  <div
-                    class="samal-crime-pin-shadow"
-                  ></div>
-                </div>
-              `,
-
+              <div class="samal-crime-pin-shadow"></div>
+            </div>
+          `,
           iconSize: [38, 46],
-
           iconAnchor: [19, 42],
-
           tooltipAnchor: [0, -38],
         });
 
@@ -368,35 +274,23 @@ function BarangayCrimePins({
               },
             }}
           >
-            {/* =========================================
-                  CRIME PIN TOOLTIP
-
-                  This tooltip displays the ACTUAL
-                  number of cases.
-
-                  The marker is a barangay reference,
-                  not an exact crime location.
-              ========================================= */}
-
-            <Tooltip direction="top" offset={[0, -4]} opacity={0.98}>
+            <Tooltip
+              direction="top"
+              offset={[0, -4]}
+              opacity={0.98}
+            >
               <div
                 style={{
-                  minWidth: "180px",
-
+                  minWidth: 180,
                   padding: "10px 12px",
                 }}
               >
                 <div
                   style={{
-                    fontSize: "14px",
-
+                    fontSize: 14,
                     fontWeight: 800,
-
-                    lineHeight: 1.25,
-
                     color: "#0F3D56",
-
-                    marginBottom: "4px",
+                    marginBottom: 4,
                   }}
                 >
                   {marker.name}
@@ -404,74 +298,52 @@ function BarangayCrimePins({
 
                 <div
                   style={{
-                    fontSize: "11px",
-
-                    lineHeight: 1.4,
-
+                    fontSize: 11,
                     color: "#60747D",
-
-                    marginBottom: "5px",
+                    marginBottom: 5,
                   }}
                 >
                   {crimeLabel}
                 </div>
 
-                {/* ACTUAL CASE COUNT */}
-
                 <div
                   style={{
-                    fontSize: "18px",
-
-                    lineHeight: 1.2,
-
+                    fontSize: 18,
                     fontWeight: 800,
-
                     color: crimeColor,
                   }}
                 >
                   {count} {count === 1 ? "case" : "cases"}
                 </div>
 
-                {/* REPORTED / ESTIMATED */}
-
                 <div
                   style={{
-                    marginTop: "6px",
-
-                    fontSize: "11px",
-
-                    lineHeight: 1.4,
-
+                    marginTop: 6,
+                    fontSize: 11,
                     fontWeight: 700,
-
-                    color: isEstimated ? "#B45309" : "#0F766E",
+                    color: isEstimated
+                      ? "#B45309"
+                      : "#0F766E",
                   }}
                 >
-                  {isEstimated ? "Estimated allocation" : "Reported"}
-
+                  {isEstimated
+                    ? "Estimated allocation"
+                    : "Reported"}
                   {" • "}
-
                   {periodLabel}
                 </div>
 
-                {/* LOCATION WARNING */}
-
                 <div
                   style={{
-                    marginTop: "7px",
-
-                    paddingTop: "7px",
-
+                    marginTop: 7,
+                    paddingTop: 7,
                     borderTop: "1px solid #E2E8F0",
-
-                    fontSize: "10px",
-
-                    lineHeight: 1.35,
-
+                    fontSize: 10,
                     color: "#64748B",
                   }}
                 >
-                  Barangay reference location — not an exact incident location.
+                  Barangay reference location — not an
+                  exact incident location.
                 </div>
               </div>
             </Tooltip>
@@ -482,9 +354,11 @@ function BarangayCrimePins({
   );
 }
 
-/* =========================================================
-   MAIN SAMAL CRIME MAP
-========================================================= */
+/*
+=========================================================
+3. MAIN SAMAL MAP COMPONENT
+=========================================================
+*/
 
 export default function SamalMap({
   selectedBarangayId,
@@ -492,18 +366,13 @@ export default function SamalMap({
   selectedYear,
   onBarangayChange,
 }: SamalMapProps) {
-  /*
-    Reference to the Leaflet GeoJSON layer.
-
-    This allows the component to update polygon styles
-    whenever filters change.
-  */
-
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
 
-  /* =======================================================
-     FIND SELECTED CRIME
-  ======================================================= */
+  /*
+  =======================================================
+  4. SELECTED CRIME AND REPORTING PERIOD
+  =======================================================
+  */
 
   const selectedCrime = useMemo(() => {
     if (selectedCrimeId === "all") {
@@ -511,219 +380,176 @@ export default function SamalMap({
     }
 
     return (
-      crimesData.crimes.find((crime) => crime.id === selectedCrimeId) ?? null
+      crimesData.crimes.find(
+        (crime) => crime.id === selectedCrimeId
+      ) ?? null
     );
   }, [selectedCrimeId]);
 
-  /* =======================================================
-     REPORTED OR ESTIMATED?
-
-     ALL YEARS
-     → Reported barangay totals are available.
-
-     SPECIFIC YEAR
-     → Crime × Year × Barangay uses estimated allocation.
-  ======================================================= */
-
   const isEstimated = selectedYear !== "all";
-
-  /* =======================================================
-     MAP TEXT LABELS
-  ======================================================= */
 
   const crimeLabel = selectedCrime?.name ?? "All Crimes";
 
-  const periodLabel = selectedYear === "all" ? "2024–2026" : selectedYear;
+  const periodLabel =
+    selectedYear === "all"
+      ? "2024–2026"
+      : selectedYear;
 
-  /* =======================================================
-     SELECTED CRIME COLOR
-  ======================================================= */
+  const activeCrimeColor =
+    getCrimeColor(selectedCrimeId);
 
-  const activeCrimeColor = getCrimeColor(selectedCrimeId);
+  /*
+  =======================================================
+  5. CALCULATE BARANGAY COUNTS
+  =======================================================
 
-  /* =======================================================
-     CALCULATE ACTUAL DISPLAYED CASE COUNTS
-     =======================================================
+  All years:
+    Uses the reported barangay totals.
 
-     IMPORTANT:
+  Specific year:
+    Uses the crime-year-barangay allocation file.
 
-     This preserves your existing reported/estimated
-     calculation.
-  ======================================================= */
+  Year-specific values are estimated allocations
+  unless the underlying data is independently
+  verified as reported.
+
+  No new case counts are invented here.
+  =======================================================
+  */
 
   const barangayCounts = useMemo<BarangayCounts>(() => {
     const result: BarangayCounts = {};
 
-    /* ===============================================
-           ALL YEARS = REPORTED DATA
-        =============================================== */
-
+    // All years, all crimes
     if (selectedYear === "all") {
-      /* ---------------------------------------------
-             ALL CRIMES + ALL YEARS
-          --------------------------------------------- */
-
       if (selectedCrimeId === "all") {
-        Object.entries(crimesData.barangayTotals).forEach(
-          ([barangayId, count]) => {
-            result[barangayId] = Number(count);
-          },
-        );
+        Object.entries(
+          crimesData.barangayTotals
+        ).forEach(([barangayId, count]) => {
+          result[barangayId] = Number(count);
+        });
 
         return result;
       }
 
-      /* ---------------------------------------------
-             ONE CRIME + ALL YEARS
-          --------------------------------------------- */
-
+      // All years, one selected crime
       if (selectedCrime) {
-        Object.entries(selectedCrime.barangays).forEach(
-          ([barangayId, count]) => {
-            result[barangayId] = Number(count);
-          },
-        );
+        Object.entries(
+          selectedCrime.barangays
+        ).forEach(([barangayId, count]) => {
+          result[barangayId] = Number(count);
+        });
       }
 
       return result;
     }
 
-    /* ===============================================
-           SPECIFIC YEAR = ESTIMATED DATA
-        =============================================== */
-
+    // Initialize every barangay with zero.
     samalBarangays.features.forEach((feature) => {
       result[feature.properties.id] = 0;
     });
 
-    /* ---------------------------------------------
-           ONE CRIME + SPECIFIC YEAR
-        --------------------------------------------- */
-
+    // Specific year and specific crime
     if (selectedCrimeId !== "all") {
-      const crimeAllocation = allocations[selectedCrimeId];
+      const crimeAllocation =
+        allocations[selectedCrimeId];
 
-      const yearAllocation = crimeAllocation?.[selectedYear];
+      const yearAllocation =
+        crimeAllocation?.[selectedYear];
 
       if (!yearAllocation) {
         return result;
       }
 
-      Object.entries(yearAllocation).forEach(([barangayId, count]) => {
-        result[barangayId] = Number(count);
-      });
+      Object.entries(yearAllocation).forEach(
+        ([barangayId, count]) => {
+          result[barangayId] = Number(count);
+        }
+      );
 
       return result;
     }
 
-    /* ---------------------------------------------
-           ALL CRIMES + SPECIFIC YEAR
-        --------------------------------------------- */
+    // Specific year, all crimes
+    Object.values(allocations).forEach(
+      (crimeAllocation) => {
+        const yearAllocation =
+          crimeAllocation[selectedYear];
 
-    Object.values(allocations).forEach((crimeAllocation) => {
-      const yearAllocation = crimeAllocation[selectedYear];
+        if (!yearAllocation) return;
 
-      if (!yearAllocation) {
-        return;
+        Object.entries(yearAllocation).forEach(
+          ([barangayId, count]) => {
+            result[barangayId] =
+              (result[barangayId] ?? 0) +
+              Number(count);
+          }
+        );
       }
-
-      Object.entries(yearAllocation).forEach(([barangayId, count]) => {
-        result[barangayId] = (result[barangayId] ?? 0) + Number(count);
-      });
-    });
+    );
 
     return result;
-  }, [selectedYear, selectedCrimeId, selectedCrime]);
+  }, [
+    selectedYear,
+    selectedCrimeId,
+    selectedCrime,
+  ]);
 
-  /* =======================================================
-     FIND HIGHEST DISPLAYED CASE COUNT
-     =======================================================
+  /*
+  =======================================================
+  6. FIND THE HIGHEST DISPLAYED CASE COUNT
+  =======================================================
 
-     This does NOT create a fixed threshold.
+  Used only for relative visual comparison.
 
-     Example:
+  Example:
+    Barangay A: 10
+    Barangay B: 5
+    Barangay C: 2
 
-     Gugo       = 10
-     Lalawigan  = 5
-     Palili     = 3
+  maximumCount = 10
 
-     maximumCount = 10
-
-     The actual values remain 10, 5, and 3.
-  ======================================================= */
+  This does not calculate a crime rate or
+  population-adjusted risk.
+  =======================================================
+  */
 
   const maximumCount = useMemo(() => {
     const values = Object.values(barangayCounts);
 
-    if (values.length === 0) {
-      return 0;
-    }
-
-    return Math.max(...values, 0);
+    return values.length > 0
+      ? Math.max(...values, 0)
+      : 0;
   }, [barangayCounts]);
 
-  /* =======================================================
-     GET ONE BARANGAY'S ACTUAL COUNT
-  ======================================================= */
+  const getBarangayCount = (barangayId: string) =>
+    barangayCounts[barangayId] ?? 0;
 
-  const getBarangayCount = (barangayId: string) => {
-    return barangayCounts[barangayId] ?? 0;
-  };
+  /*
+  =======================================================
+  7. RELATIVE INTENSITY LABELS
+  =======================================================
 
-  /* =======================================================
-     RELATIVE INTENSITY LABEL
-     =======================================================
+  These labels describe the displayed count
+  relative to the highest barangay count.
 
-     This is a descriptive tooltip label.
+  They are not official crime risk categories.
+  =======================================================
+  */
 
-     IMPORTANT:
-
-     The actual crime count is NOT changed.
-
-     No fixed case-count range is assigned.
-
-     No percentage is shown to the user.
-
-     "Highest" has a clear meaning:
-
-     → This barangay has the highest displayed case count
-       under the current filters.
-
-     Low / Moderate / High describe the barangay's
-     relative position below the maximum.
-
-     These labels should NOT be interpreted as official
-     crime-risk classifications.
-  ======================================================= */
-
-  const getRelativeIntensityLabel = (count: number) => {
-    /* NO CASES */
-
+  const getRelativeIntensityLabel = (
+    count: number
+  ) => {
     if (count <= 0 || maximumCount <= 0) {
       return "No cases";
     }
-
-    /* HIGHEST ACTUAL DISPLAYED COUNT */
 
     if (count === maximumCount) {
       return "Highest";
     }
 
-    /*
-      Internal comparison only.
-
-      This is NOT displayed as a percentage.
-    */
-
-    const relativeStrength = count / maximumCount;
-
-    /*
-      These values are used only to choose a simple
-      descriptive visual label.
-
-      They do NOT change the count and they are NOT
-      displayed as case-count ranges.
-    */
+    const relativeStrength =
+      count / maximumCount;
 
     if (relativeStrength >= 0.67) {
       return "High";
@@ -736,115 +562,155 @@ export default function SamalMap({
     return "Low";
   };
 
-  /* =======================================================
-     POLYGON COLOR
-     =======================================================
+  /*
+  =======================================================
+  8. HIGH-CONTRAST POLYGON COLORS — UPDATED
+  =======================================================
 
-     NO FIXED CRIME-COUNT THRESHOLDS.
+  This is the main visual improvement.
 
-     0 cases
-     → Gray
+  Instead of changing opacity alone, the map
+  also changes the color's lightness.
 
-     All crimes
-     → Teal
+  LOW:
+    Light tint of the selected crime color.
 
-     Specific crime
-     → Assigned crime color
+  MODERATE:
+    Stronger and more saturated shade.
 
-     The hue stays the same.
+  HIGH:
+    Close to the original crime color.
 
-     Only color strength changes.
-  ======================================================= */
+  HIGHEST:
+    Full selected crime color.
+
+  The color changes continuously according
+  to the actual relative case count.
+
+  No fixed case-count thresholds are introduced.
+  =======================================================
+  */
 
   const getFillColor = (count: number) => {
-    /* ZERO CASES */
-
     if (count <= 0) {
       return "#CBD5E1";
     }
 
-    /* ALL CRIMES */
+    const baseColor =
+      selectedCrimeId === "all"
+        ? "#0F766E"
+        : activeCrimeColor;
 
-    if (selectedCrimeId === "all") {
-      return "#0F766E";
+    const strength =
+      maximumCount > 0
+        ? Math.max(
+            0,
+            Math.min(1, count / maximumCount)
+          )
+        : 0;
+
+    // Nonlinear adjustment improves the
+    // visual separation of lower case counts.
+    const colorStrength = Math.pow(
+      strength,
+      0.85
+    );
+
+    // Low counts are mixed with more white.
+    // Highest count uses the full crime color.
+    const whiteMix =
+      0.72 * (1 - colorStrength);
+
+    const hex = baseColor.replace("#", "");
+
+    // Preserve non-hex configured colors.
+    if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+      return baseColor;
     }
 
-    /* SPECIFIC CRIME */
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
 
-    return activeCrimeColor;
+    const blend = (channel: number) =>
+      Math.round(
+        channel +
+        (255 - channel) * whiteMix
+      );
+
+    return `rgb(${blend(r)}, ${blend(g)}, ${blend(b)})`;
   };
 
-  /* =======================================================
-     CONTINUOUS COLOR STRENGTH
-     =======================================================
+  /*
+  =======================================================
+  9. HIGH-CONTRAST OPACITY — UPDATED
+  =======================================================
 
-     There are NO fixed case-count thresholds.
+  Previous:
+    Approximately 0.18–0.65
 
-     Every actual count receives a continuous visual
-     strength based on the highest currently displayed
-     count.
+  New:
+    Approximately 0.88–0.98
 
-     Example:
+  This makes polygon colors much more visible
+  on green satellite imagery.
 
-     Highest displayed = 10
+  Selection does not change fill opacity.
 
-     10 cases → strongest
-      7 cases → lighter
-      5 cases → lighter
-      2 cases → lighter
-      1 case  → lightest positive color
+  The selected barangay is distinguished by
+  its yellow boundary instead.
+  =======================================================
+  */
 
-     count / maximumCount is used internally only.
-
-     It is NOT displayed as a crime percentage.
-  ======================================================= */
-
-  const getFillOpacity = (count: number, _isSelected: boolean) => {
-    /* NO CASES */
-
+  const getFillOpacity = (
+    count: number,
+    _isSelected: boolean
+  ) => {
     if (count <= 0) {
-      return 0.5;
+      return 0.06;
     }
-
-    /* SAFETY CHECK */
 
     if (maximumCount <= 0) {
-      return 0.25;
+      return 0.88;
     }
 
-    /*
-      Internal visual comparison only.
-    */
+    const strength = Math.max(
+      0,
+      Math.min(1, count / maximumCount)
+    );
 
-    const relativeStrength = count / maximumCount;
-
-    const minimumOpacity = 0.25;
-
-    const maximumOpacity = 0.95;
+    const minimumOpacity = 0.88;
+    const maximumOpacity = 0.98;
 
     return (
-      minimumOpacity + relativeStrength * (maximumOpacity - minimumOpacity)
+      minimumOpacity +
+      strength *
+        (maximumOpacity - minimumOpacity)
     );
   };
 
-  /* =======================================================
-     UPDATE POLYGONS WHEN FILTERS CHANGE
-     =======================================================
+  /*
+  =======================================================
+  10. UPDATE POLYGON STYLES
+  =======================================================
 
-     Selection uses a yellow border.
+  When crime, year, or barangay selection
+  changes, Leaflet updates polygon colors.
 
-     Selection does NOT increase the polygon opacity.
+  Yellow:
+    Selected barangay boundary.
 
-     Therefore the fill continues to represent only the
-     displayed crime count.
-  ======================================================= */
+  White:
+    Unselected barangay boundary.
+
+  The actual crime counts are unchanged.
+  =======================================================
+  */
 
   useEffect(() => {
     const geoJsonLayer = geoJsonRef.current;
 
-    if (!geoJsonLayer) {
-      return;
-    }
+    if (!geoJsonLayer) return;
 
     geoJsonLayer.eachLayer((layer) => {
       const featureLayer = layer as L.Path & {
@@ -853,34 +719,31 @@ export default function SamalMap({
 
       const feature = featureLayer.feature;
 
-      if (!feature) {
-        return;
-      }
+      if (!feature) return;
 
       const barangayId = feature.properties.id;
 
-      const count = getBarangayCount(barangayId);
+      const count =
+        getBarangayCount(barangayId);
 
-      const isSelected = barangayId === selectedBarangayId;
+      const isSelected =
+        barangayId === selectedBarangayId;
 
       featureLayer.setStyle({
-        /* SELECTED BORDER */
-
-        color: isSelected ? "#FACC15" : "#FFFFFF",
-
-        /* BORDER WIDTH */
+        color: isSelected
+          ? "#FACC15"
+          : "#FFFFFF",
 
         weight: isSelected ? 4.5 : 2.5,
 
         opacity: 1,
 
-        /* CRIME COLOR */
-
         fillColor: getFillColor(count),
 
-        /* CONTINUOUS COUNT-BASED STRENGTH */
-
-        fillOpacity: getFillOpacity(count, isSelected),
+        fillOpacity: getFillOpacity(
+          count,
+          isSelected
+        ),
       });
 
       if (isSelected) {
@@ -895,9 +758,11 @@ export default function SamalMap({
     activeCrimeColor,
   ]);
 
-  /* =======================================================
-     DISPLAY MAP
-  ======================================================= */
+  /*
+  =======================================================
+  11. RENDER MAP
+  =======================================================
+  */
 
   return (
     <Box
@@ -905,20 +770,13 @@ export default function SamalMap({
         width: "100%",
         height: "100%",
         minHeight: 0,
-
         position: "relative",
         overflow: "hidden",
-
-        /* ===============================================
-           LEAFLET MAP
-        =============================================== */
 
         "& .leaflet-container": {
           width: "100%",
           height: "100%",
-
           fontFamily: "inherit",
-
           backgroundColor: "#0b1820",
         },
 
@@ -926,198 +784,162 @@ export default function SamalMap({
           cursor: "pointer",
         },
 
-        /* ===============================================
-           TOOLTIP
-        =============================================== */
-
         "& .leaflet-tooltip": {
           border: "none",
-
           borderRadius: "10px",
-
-          boxShadow: "0 6px 20px rgba(0,0,0,0.24)",
-
+          boxShadow:
+            "0 6px 20px rgba(0,0,0,0.24)",
           padding: 0,
         },
 
-        /* ===============================================
-           LAYER CONTROL
-        =============================================== */
-
         "& .leaflet-control-layers": {
           border: "none",
-
           borderRadius: "12px",
-
-          boxShadow: "0 4px 14px rgba(15,61,86,0.18)",
-
+          boxShadow:
+            "0 4px 14px rgba(15,61,86,0.18)",
           overflow: "hidden",
         },
 
         "& .leaflet-control-layers-toggle": {
           width: "38px",
           height: "38px",
-
           backgroundSize: "20px 20px",
         },
 
         "& .leaflet-control-layers-expanded": {
           padding: "10px 12px",
-
           color: "#172B35",
-
           fontSize: "12px",
-
           fontWeight: 600,
-
-          backgroundColor: "rgba(255,255,255,0.96)",
+          backgroundColor:
+            "rgba(255,255,255,0.96)",
         },
 
-        /* ===============================================
-           CRIME PIN
-        =============================================== */
+        /*
+        ===============================================
+        CUSTOM PIN STYLES
+        ===============================================
+        */
 
         "& .samal-crime-marker": {
           background: "transparent",
-
           border: "none",
         },
 
         "& .samal-crime-pin-wrapper": {
           position: "relative",
-
           width: 38,
           height: 46,
-
           transformOrigin: "center bottom",
-
-          animation: "samalPinDrop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both",
+          animation:
+            "samalPinDrop 0.55s cubic-bezier(0.22,1,0.36,1) both",
         },
 
         "& .samal-crime-pin": {
           position: "absolute",
-
           top: 0,
           left: 5,
-
           width: 28,
           height: 28,
-
           borderRadius: "50% 50% 50% 0",
-
           transform: "rotate(-45deg)",
-
           border: "2px solid #FFFFFF",
-
-          boxShadow: "0 7px 16px rgba(0,0,0,0.30)",
-
+          boxShadow:
+            "0 7px 16px rgba(0,0,0,0.30)",
           display: "grid",
-
           placeItems: "center",
-
-          transition: "transform 160ms ease, box-shadow 160ms ease",
+          transition:
+            "transform 160ms ease, box-shadow 160ms ease",
         },
 
         "& .samal-crime-pin-center": {
           width: 8,
           height: 8,
-
           borderRadius: "50%",
-
           backgroundColor: "#FFFFFF",
-
           transform: "rotate(45deg)",
-
-          boxShadow: "0 1px 3px rgba(0,0,0,0.20)",
+          boxShadow:
+            "0 1px 3px rgba(0,0,0,0.20)",
         },
 
         "& .samal-crime-pin-shadow": {
           position: "absolute",
-
           left: 10,
           bottom: 0,
-
           width: 18,
           height: 6,
-
           borderRadius: "50%",
-
-          backgroundColor: "rgba(0,0,0,0.30)",
-
+          backgroundColor:
+            "rgba(0,0,0,0.30)",
           filter: "blur(1px)",
-
-          animation: "samalPinShadow 0.55s ease-out both",
+          animation:
+            "samalPinShadow 0.55s ease-out both",
         },
 
         "& .samal-crime-marker:hover .samal-crime-pin": {
-          transform: "rotate(-45deg) scale(1.12)",
+          transform:
+            "rotate(-45deg) scale(1.12)",
         },
 
-        /* ===============================================
-           PIN ANIMATION
-        =============================================== */
+        /*
+        ===============================================
+        PIN ANIMATIONS
+        ===============================================
+        */
 
         "@keyframes samalPinDrop": {
           "0%": {
             opacity: 0,
-
-            transform: "translateY(-28px) scale(0.8)",
+            transform:
+              "translateY(-28px) scale(0.8)",
           },
 
           "65%": {
             opacity: 1,
-
-            transform: "translateY(3px) scale(1.05)",
+            transform:
+              "translateY(3px) scale(1.05)",
           },
 
           "100%": {
             opacity: 1,
-
-            transform: "translateY(0) scale(1)",
+            transform:
+              "translateY(0) scale(1)",
           },
         },
 
         "@keyframes samalPinShadow": {
           "0%": {
             opacity: 0,
-
             transform: "scale(0.45)",
           },
 
           "100%": {
             opacity: 1,
-
             transform: "scale(1)",
           },
         },
 
-        /* ===============================================
-           MOBILE
-        =============================================== */
+        /*
+        ===============================================
+        MOBILE RESPONSIVENESS
+        ===============================================
+        */
 
         "@media (max-width: 600px)": {
           "& .leaflet-control-zoom a": {
             width: "32px",
-
             height: "32px",
-
             lineHeight: "32px",
-
             fontSize: "18px",
           },
 
           "& .leaflet-control-layers-expanded": {
             padding: "8px 10px",
-
             fontSize: "11px",
           },
         },
       }}
     >
-      {/* =================================================
-          MAIN LEAFLET MAP
-      ================================================= */}
-
       <MapContainer
         center={[14.76, 120.54]}
         zoom={13}
@@ -1129,14 +951,23 @@ export default function SamalMap({
           height: "100%",
         }}
       >
-        {/* ===============================================
-            BASE MAP OPTIONS
-        =============================================== */}
+        {/*
+        ===============================================
+        12. SATELLITE AND STREET MAP LAYERS
+        ===============================================
 
-        <LayersControl position="topright" collapsed={false}>
-          {/* SATELLITE */}
+        Satellite is selected by default.
+        ===============================================
+        */}
 
-          <LayersControl.BaseLayer checked name="Satellite">
+        <LayersControl
+          position="topright"
+          collapsed={false}
+        >
+          <LayersControl.BaseLayer
+            checked
+            name="Satellite"
+          >
             <TileLayer
               attribution="Sources: Esri and imagery providers"
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
@@ -1144,9 +975,9 @@ export default function SamalMap({
             />
           </LayersControl.BaseLayer>
 
-          {/* STREET MAP */}
-
-          <LayersControl.BaseLayer name="Street Map">
+          <LayersControl.BaseLayer
+            name="Street Map"
+          >
             <TileLayer
               attribution="© OpenStreetMap contributors"
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -1155,9 +986,11 @@ export default function SamalMap({
           </LayersControl.BaseLayer>
         </LayersControl>
 
-        {/* ===============================================
-            PLACE LABELS
-        =============================================== */}
+        {/*
+        ===============================================
+        13. REFERENCE LABEL LAYER
+        ===============================================
+        */}
 
         <TileLayer
           attribution="Esri"
@@ -1166,31 +999,46 @@ export default function SamalMap({
           opacity={0.9}
         />
 
-        {/* ===============================================
-            AUTOMATIC MAP POSITION
-        =============================================== */}
+        {/*
+        ===============================================
+        14. AUTOMATIC MAP ZOOM
+        ===============================================
+        */}
 
-        <MapBoundsController selectedBarangayId={selectedBarangayId} />
+        <MapBoundsController
+          selectedBarangayId={
+            selectedBarangayId
+          }
+        />
 
-        {/* ===============================================
-            BARANGAY BOUNDARIES
-        =============================================== */}
+        {/*
+        ===============================================
+        15. BARANGAY GEOJSON POLYGONS
+        ===============================================
+        */}
 
         <GeoJSON
           key={`${selectedCrimeId}-${selectedYear}`}
           ref={geoJsonRef}
-          data={samalBarangays as GeoJSON.GeoJsonObject}
+          data={
+            samalBarangays as GeoJSON.GeoJsonObject
+          }
           style={(feature) => {
-            const barangay = feature as BarangayFeature;
+            const barangay =
+              feature as BarangayFeature;
 
             const id = barangay.properties.id;
 
-            const count = getBarangayCount(id);
+            const count =
+              getBarangayCount(id);
 
-            const isSelected = id === selectedBarangayId;
+            const isSelected =
+              id === selectedBarangayId;
 
             return {
-              color: isSelected ? "#FACC15" : "#FFFFFF",
+              color: isSelected
+                ? "#FACC15"
+                : "#FFFFFF",
 
               weight: isSelected ? 4.5 : 2.5,
 
@@ -1198,279 +1046,230 @@ export default function SamalMap({
 
               fillColor: getFillColor(count),
 
-              fillOpacity: getFillOpacity(count, isSelected),
+              fillOpacity: getFillOpacity(
+                count,
+                isSelected
+              ),
             };
           }}
           onEachFeature={(feature, layer) => {
-            const barangay = feature as BarangayFeature;
+            const barangay =
+              feature as BarangayFeature;
 
-            const { id, name } = barangay.properties;
+            const { id, name } =
+              barangay.properties;
 
-            /* ===========================================
-               GET ACTUAL CASE COUNT
-            =========================================== */
+            const count =
+              getBarangayCount(id);
 
-            const count = getBarangayCount(id);
+            const intensityLabel =
+              getRelativeIntensityLabel(count);
 
-            /* ===========================================
-               GET RELATIVE INTENSITY LABEL
+            const dataLabel = isEstimated
+              ? "Estimated allocation"
+              : "Reported";
 
-               This adds:
+            /*
+            ===========================================
+            16. BARANGAY INFORMATION TOOLTIP
+            ===========================================
 
-               Low
-               Moderate
-               High
-               Highest
-               No cases
-
-               It does NOT alter the actual case count.
-            =========================================== */
-
-            const intensityLabel = getRelativeIntensityLabel(count);
-
-            /* ===========================================
-               REPORTED / ESTIMATED
-            =========================================== */
-
-            const dataLabel = isEstimated ? "Estimated allocation" : "Reported";
-
-            /* ===========================================
-               BARANGAY TOOLTIP
-
-               Shows:
-
-               - Barangay
-               - Crime
-               - Actual number of cases
-               - Relative intensity label
-               - Highest displayed count
-               - Reported / Estimated
-               - Reporting period
-
-               IMPORTANT:
-
-               No fixed case-count range or percentage
-               is displayed.
-            =========================================== */
+            Displays:
+            - Barangay name
+            - Selected crime
+            - Case count
+            - Relative intensity
+            - Highest displayed count
+            - Data status
+            - Reporting period
+            ===========================================
+            */
 
             layer.bindTooltip(
               `
+              <div style="
+                min-width:210px;
+                padding:12px 14px;
+              ">
                 <div style="
-                  min-width: 210px;
-                  padding: 12px 14px;
+                  font-size:15px;
+                  font-weight:800;
+                  color:#0F3D56;
+                  margin-bottom:6px;
                 ">
-
-                  <!-- BARANGAY NAME -->
-
-                  <div style="
-                    font-size: 15px;
-                    font-weight: 800;
-                    color: #0F3D56;
-                    margin-bottom: 6px;
-                  ">
-                    ${name}
-                  </div>
-
-
-                  <!-- SELECTED CRIME -->
-
-                  <div style="
-                    font-size: 12px;
-                    color: #60747D;
-                    margin-bottom: 5px;
-                  ">
-                    ${crimeLabel}
-                  </div>
-
-
-                  <!-- ACTUAL CASE COUNT -->
-
-                  <div style="
-                    font-size: 20px;
-                    line-height: 1.2;
-                    font-weight: 800;
-                    color: #172B35;
-                  ">
-                    ${count}
-                    ${count === 1 ? "case" : "cases"}
-                  </div>
-
-
-                  <!-- RELATIVE INTENSITY LABEL -->
-
-                  ${
-                    count > 0
-                      ? `
-                        <div style="
-                          margin-top: 7px;
-                          display: inline-flex;
-                          align-items: center;
-                          gap: 5px;
-                          padding: 4px 8px;
-                          border-radius: 999px;
-
-                          background-color:
-                            ${
-                              intensityLabel === "Highest"
-                                ? "rgba(15,118,110,0.16)"
-                                : intensityLabel === "High"
-                                  ? "rgba(15,118,110,0.12)"
-                                  : intensityLabel === "Moderate"
-                                    ? "rgba(15,118,110,0.09)"
-                                    : "rgba(15,118,110,0.06)"
-                            };
-
-                          color: #0F766E;
-
-                          font-size: 11px;
-                          line-height: 1.2;
-                          font-weight: 800;
-                        ">
-
-                          <span style="
-                            width: 7px;
-                            height: 7px;
-                            border-radius: 50%;
-                            background-color: #0F766E;
-                            display: inline-block;
-                          "></span>
-
-                          ${intensityLabel} intensity
-                        </div>
-                      `
-                      : `
-                        <div style="
-                          margin-top: 7px;
-                          display: inline-flex;
-                          align-items: center;
-                          gap: 5px;
-                          padding: 4px 8px;
-                          border-radius: 999px;
-                          background-color: #F1F5F9;
-                          color: #64748B;
-                          font-size: 11px;
-                          line-height: 1.2;
-                          font-weight: 800;
-                        ">
-
-                          <span style="
-                            width: 7px;
-                            height: 7px;
-                            border-radius: 50%;
-                            background-color: #CBD5E1;
-                            display: inline-block;
-                          "></span>
-
-                          No cases
-                        </div>
-                      `
-                  }
-
-
-                  <!-- HIGHEST DISPLAYED COUNT -->
-
-                  ${
-                    count > 0
-                      ? `
-                        <div style="
-                          margin-top: 7px;
-                          font-size: 11px;
-                          line-height: 1.4;
-                          color: #60747D;
-                        ">
-                          Highest displayed count:
-
-                          <strong style="
-                            color: #172B35;
-                          ">
-                            ${maximumCount}
-                            ${maximumCount === 1 ? "case" : "cases"}
-                          </strong>
-                        </div>
-                      `
-                      : ""
-                  }
-
-
-                  <!-- DATA STATUS -->
-
-                  <div style="
-                    margin-top: 7px;
-                    font-size: 11px;
-                    font-weight: 700;
-                    color:
-                      ${isEstimated ? "#B45309" : "#0F766E"};
-                  ">
-                    ${dataLabel}
-                    •
-                    ${periodLabel}
-                  </div>
-
+                  ${name}
                 </div>
+
+                <div style="
+                  font-size:12px;
+                  color:#60747D;
+                  margin-bottom:5px;
+                ">
+                  ${crimeLabel}
+                </div>
+
+                <div style="
+                  font-size:20px;
+                  font-weight:800;
+                  color:#172B35;
+                ">
+                  ${count}
+                  ${count === 1 ? "case" : "cases"}
+                </div>
+
+                ${
+                  count > 0
+                    ? `
+                    <div style="
+                      margin-top:7px;
+                      display:inline-flex;
+                      align-items:center;
+                      gap:5px;
+                      padding:4px 8px;
+                      border-radius:999px;
+                      background:rgba(15,118,110,0.12);
+                      color:#0F766E;
+                      font-size:11px;
+                      font-weight:800;
+                    ">
+                      <span style="
+                        width:7px;
+                        height:7px;
+                        border-radius:50%;
+                        background:#0F766E;
+                        display:inline-block;
+                      "></span>
+
+                      ${intensityLabel} intensity
+                    </div>
+
+                    <div style="
+                      margin-top:7px;
+                      font-size:11px;
+                      color:#60747D;
+                    ">
+                      Highest displayed count:
+
+                      <strong style="
+                        color:#172B35;
+                      ">
+                        ${maximumCount}
+                        ${
+                          maximumCount === 1
+                            ? "case"
+                            : "cases"
+                        }
+                      </strong>
+                    </div>
+                    `
+                    : `
+                    <div style="
+                      margin-top:7px;
+                      display:inline-block;
+                      padding:4px 8px;
+                      border-radius:999px;
+                      background:#F1F5F9;
+                      color:#64748B;
+                      font-size:11px;
+                      font-weight:800;
+                    ">
+                      No cases
+                    </div>
+                    `
+                }
+
+                <div style="
+                  margin-top:7px;
+                  font-size:11px;
+                  font-weight:700;
+                  color:${
+                    isEstimated
+                      ? "#B45309"
+                      : "#0F766E"
+                  };
+                ">
+                  ${dataLabel}
+                  •
+                  ${periodLabel}
+                </div>
+              </div>
               `,
               {
                 sticky: true,
-
                 direction: "top",
-
                 opacity: 0.98,
-              },
+              }
             );
 
-            /* ===========================================
-               CLICK BARANGAY
-            =========================================== */
+            /*
+            ===========================================
+            17. BARANGAY CLICK
+            ===========================================
+            */
 
             layer.on("click", () => {
               onBarangayChange(id);
             });
 
-            /* ===========================================
-               HOVER
+            /*
+            ===========================================
+            18. BARANGAY HOVER
+            ===========================================
 
-               Hover changes ONLY the border.
+            Hover changes only the outline.
 
-               It does NOT change:
-
-               - Case count
-               - Fill color
-               - Fill opacity
-               - Relative intensity
-            =========================================== */
+            Fill color and fill opacity
+            remain based on the case count.
+            ===========================================
+            */
 
             layer.on("mouseover", (event) => {
-              const target = event.target as L.Path;
+              const target =
+                event.target as L.Path;
 
-              const isSelected = id === selectedBarangayId;
+              const isSelected =
+                id === selectedBarangayId;
 
               target.setStyle({
                 color: "#FACC15",
-
-                weight: isSelected ? 4.5 : 3.5,
+                weight: isSelected
+                  ? 4.5
+                  : 3.5,
               });
 
               target.bringToFront();
             });
 
-            /* ===========================================
-               MOUSE OUT
-            =========================================== */
+            /*
+            ===========================================
+            19. RESTORE STYLE ON MOUSE LEAVE
+            ===========================================
+            */
 
             layer.on("mouseout", (event) => {
-              const target = event.target as L.Path;
+              const target =
+                event.target as L.Path;
 
-              const isSelected = id === selectedBarangayId;
+              const isSelected =
+                id === selectedBarangayId;
 
               target.setStyle({
-                color: isSelected ? "#FACC15" : "#FFFFFF",
+                color: isSelected
+                  ? "#FACC15"
+                  : "#FFFFFF",
 
-                weight: isSelected ? 4.5 : 2.5,
+                weight: isSelected
+                  ? 4.5
+                  : 2.5,
 
                 opacity: 1,
 
                 fillColor: getFillColor(count),
 
-                fillOpacity: getFillOpacity(count, isSelected),
+                fillOpacity: getFillOpacity(
+                  count,
+                  isSelected
+                ),
               });
 
               if (isSelected) {
@@ -1480,249 +1279,71 @@ export default function SamalMap({
           }}
         />
 
-        {/* ===============================================
-            CRIME REFERENCE PINS
-        =============================================== */}
+        {/*
+        ===============================================
+        20. CRIME REFERENCE MARKERS
+        ===============================================
+
+        These are barangay reference pins,
+        not exact crime incident locations.
+        ===============================================
+        */}
 
         <BarangayCrimePins
-          selectedCrimeId={selectedCrimeId}
-          selectedBarangayId={selectedBarangayId}
-          barangayCounts={barangayCounts}
-          crimeLabel={crimeLabel}
-          periodLabel={periodLabel}
-          isEstimated={isEstimated}
-          onBarangayChange={onBarangayChange}
+          selectedCrimeId={
+            selectedCrimeId
+          }
+          selectedBarangayId={
+            selectedBarangayId
+          }
+          barangayCounts={
+            barangayCounts
+          }
+          crimeLabel={
+            crimeLabel
+          }
+          periodLabel={
+            periodLabel
+          }
+          isEstimated={
+            isEstimated
+          }
+          onBarangayChange={
+            onBarangayChange
+          }
         />
       </MapContainer>
     </Box>
   );
 }
 
-/* =========================================================
-   SIMPLE EXPLANATION FOR CRIMINOLOGY STUDENTS
-   =========================================================
+/*
+=========================================================
+END OF BANTAY SAMAL MAP COMPONENT
+=========================================================
 
-   HOW DOES THE BANTAY SAMAL MAP WORK?
+HIGH-CONTRAST CHANGES:
 
+1. Polygon opacity increased to 0.88–0.98.
 
-   STEP 1
+2. Polygon colors use a continuous gradient
+   with stronger visual contrast.
 
-   The system loads the geographic boundaries of the
-   barangays of Samal.
+3. Low case counts use lighter shades.
 
-                ↓
+4. Moderate case counts use stronger shades.
 
+5. Highest case counts use the full crime color.
 
-   STEP 2
+6. Yellow selection outlines are preserved.
 
-   The system loads the crime statistics.
+7. Crime totals and filtering remain unchanged.
 
-                ↓
+8. Estimated values remain labeled estimated.
 
+IMPORTANT:
+Relative color intensity is not an official
+crime risk or safety classification.
 
-   STEP 3
-
-   The user selects:
-
-   - Crime
-   - Year
-   - Barangay
-
-                ↓
-
-
-   STEP 4
-
-   The system determines the ACTUAL NUMBER OF CASES that
-   should be displayed for every barangay.
-
-                ↓
-
-
-   STEP 5
-
-   The system determines whether the displayed value is:
-
-   REPORTED
-
-   or
-
-   ESTIMATED
-
-                ↓
-
-
-   STEP 6
-
-   The system finds the largest displayed barangay count.
-
-   Example:
-
-   Gugo       = 10
-   Lalawigan  = 5
-   Palili     = 3
-
-   Highest displayed count = 10
-
-                ↓
-
-
-   STEP 7
-
-   The map uses the highest displayed count to determine
-   the visual strength of the polygon colors.
-
-   There are NO fixed case-count thresholds.
-
-                ↓
-
-
-   STEP 8
-
-   Each barangay keeps its ACTUAL number of cases.
-
-   Example:
-
-   Gugo
-   → 10 cases
-
-   Lalawigan
-   → 5 cases
-
-   Palili
-   → 3 cases
-
-                ↓
-
-
-   STEP 9
-
-   Higher counts receive stronger color.
-
-   Lower positive counts receive lighter color.
-
-   Zero cases receive gray.
-
-   The color changes continuously according to the
-   displayed counts.
-
-                ↓
-
-
-   STEP 10
-
-   When the user hovers over a barangay, the tooltip
-   displays:
-
-   - Barangay name
-   - Crime name
-   - Actual number of cases
-   - Relative intensity description
-   - Highest displayed count
-   - Reported / Estimated status
-   - Reporting period
-
-
-   =========================================================
-   RELATIVE INTENSITY LABELS
-   =========================================================
-
-   The tooltip may display:
-
-   Highest intensity
-   High intensity
-   Moderate intensity
-   Low intensity
-   No cases
-
-
-   "Highest" has a direct meaning:
-
-   It means the barangay has the highest displayed case
-   count under the current filters.
-
-
-   Example:
-
-   Gugo = 10 cases
-
-   Highest displayed count = 10 cases
-
-   Gugo receives:
-
-   Highest intensity
-
-
-   Low, Moderate, and High are descriptive visual labels
-   for values below the maximum.
-
-   They do NOT replace the actual number of cases.
-
-   They should NOT be interpreted as official crime-risk
-   classifications.
-
-
-   =========================================================
-   HOW TO INTERPRET THE MAP
-   =========================================================
-
-   1. A stronger/darker polygon means the barangay has a
-      higher displayed case count compared with the other
-      barangays under the current filters.
-
-   2. A lighter polygon means the barangay has a lower
-      displayed case count.
-
-   3. There are no fixed crime-count ranges such as:
-
-      Low = 1–3
-      Moderate = 4–5
-      High = 6–8
-      Highest = 9–10
-
-   4. The map does not display the case counts as crime
-      percentages.
-
-   5. The actual number of cases remains visible.
-
-   6. "Highest" means highest DISPLAYED COUNT under the
-      current filters.
-
-   7. Stronger color does NOT automatically mean that the
-      barangay is dangerous, unsafe, or an official crime
-      hotspot.
-
-   8. Crime pins represent barangay reference locations.
-
-   9. Crime pins are NOT exact incident locations.
-
-   10. "Reported" means the displayed value comes from the
-       available reported dataset.
-
-   11. "Estimated allocation" means that a specific
-       Crime × Year × Barangay value was estimated because
-       that exact three-way breakdown was not available in
-       the reported source data.
-
-
-   =========================================================
-   FINAL EXPLANATION
-   =========================================================
-
-   Bantay Samal is a crime-data visualization tool.
-
-   Its purpose is to help criminology students,
-   researchers, and other users understand how recorded
-   crime cases are geographically distributed among the
-   barangays of Samal, Bataan.
-
-   The ACTUAL NUMBER OF CASES remains the main statistic.
-
-   Color strength and the Low / Moderate / High / Highest
-   descriptions are visual aids for comparing the displayed
-   barangays.
-
-   They should not be interpreted by themselves as official
-   measurements of safety, danger, crime risk, or hotspot
-   status.
-========================================================= */
+=========================================================
+*/
