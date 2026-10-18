@@ -39,7 +39,7 @@ export const crimeColors: Record<string, string> = {
 
   "malicious-mischief": "#F97316",
 
-  "other-forms-of-trespass": "#8B5CF6",
+  "other-forms-of-trespass": "#8b5cf6",
 
   "alarm-and-scandal": "#E11D48",
 
