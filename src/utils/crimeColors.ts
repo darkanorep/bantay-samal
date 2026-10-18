@@ -12,7 +12,7 @@
    Every ID below matches crimes.json exactly.
 ========================================= */
 
-export const DEFAULT_CRIME_COLOR = "#0F766E";
+export const DEFAULT_CRIME_COLOR = "#420ed3";
 
 /* =========================================
    CRIME COLOR MAP
@@ -31,7 +31,7 @@ export const crimeColors: Record<string, string> = {
 
   "carnapping-motorcycle": "#7C3AED",
 
-  robbery: "#26e119",
+  robbery: "#e1cd19",
 
   /* -----------------------------------------
      NON-INDEX CRIMES
