@@ -598,7 +598,7 @@ export default function SamalMap({
 
     const baseColor =
       selectedCrimeId === "all"
-        ? "#18dfb4"
+        ? "#0c9590"
         : activeCrimeColor;
 
     const strength =
