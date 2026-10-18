@@ -31,7 +31,7 @@ export const crimeColors: Record<string, string> = {
 
   "carnapping-motorcycle": "#7C3AED",
 
-  robbery: "#e18419",
+  robbery: "#17fb07",
 
   /* -----------------------------------------
      NON-INDEX CRIMES
