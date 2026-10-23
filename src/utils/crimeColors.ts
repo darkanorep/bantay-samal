@@ -41,7 +41,7 @@ export const crimeColors: Record<string, string> = {
 
   "other-forms-of-trespass": "#8b5cf6",
 
-  "alarm-and-scandal": "#E11D48",
+  "alarm-and-scandal": "#1da9e1",
 
   "qualified-trespass-to-dwelling": "#9333EA",
 
